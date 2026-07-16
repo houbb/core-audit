@@ -1,0 +1,11 @@
+# SQLite 数据源配置
+spring:
+  datasource:
+    url: jdbc:sqlite:data/core-audit.db
+    driver-class-name: org.sqlite.JDBC
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
