@@ -1,5 +1,130 @@
 # CHANGELOG
 
+## [0.4.0] - 2026-07-17
+
+### Added — P3: Diff Runtime
+
+P3 是 `core-audit` 第一次真正具备企业价值的阶段。它不再只记录"谁改了"，而是记录"**到底改了什么**"——字段级的 Before/After 变更对比。
+
+> 核心公式：**Audit + Context + Diff = Enterprise Change Audit**
+
+**新增组件：**
+
+```
+Snapshot Resolver → Diff Engine → Change Repository → Audit Event
+```
+
+**领域模型：**
+
+| 对象 | 说明 |
+|------|------|
+| `Snapshot` | 业务对象在某一时刻的完整 JSON 快照（BEFORE / AFTER） |
+| `ChangeSet` | 一次变更的完整结构化描述（目标对象 + 所有字段变更 + 操作人 + 时间） |
+| `Change` | 单个字段变更（fieldName + changeType + beforeValue + afterValue） |
+| `ChangeType` | 枚举：ADD / REMOVE / UPDATE / UNCHANGED |
+| `SnapshotType` | 枚举：BEFORE / AFTER |
+
+**Diff Engine — 可插拔策略模式：**
+
+| Strategy | 作用 | 实现方式 |
+|----------|------|----------|
+| `BeanDiffStrategy` | Java Bean 字段比较 | 反射遍历字段，支持 @AuditIgnore / @AuditDiffField 注解，嵌套对象递归展开 |
+| `JsonDiffStrategy` | JSON 节点比较 | Jackson JsonNode 递归遍历，支持嵌套对象点号路径和数组下标路径 |
+| `CollectionDiffStrategy` | List / Set 比较 | 按索引比较元素增删改，字段名格式 `items[0]` |
+| `MapDiffStrategy` | Map 比较 | 按 key 比较值变化，字段名即 key 名 |
+
+**DiffStrategy 扩展点：**
+
+```java
+public interface DiffStrategy<T> {
+    boolean supports(Class<?> type);
+    ChangeSet compare(T before, T after);
+}
+```
+
+未来插件可注册 WorkflowDiffStrategy、ConfigDiffStrategy、PermissionDiffStrategy 等自定义策略。
+
+**新注解：**
+
+| 注解 | 作用 |
+|------|------|
+| `@AuditIgnore` | 标记字段不参与 Diff（如 updateTime、version） |
+| `@AuditDiffField` | 自定义字段在 Diff 结果中的显示名称 |
+
+**Diff 生命周期：**
+
+```
+业务开始
+  ↓
+获取 Before Snapshot（业务代码获取旧对象）
+  ↓
+业务执行（UPDATE）
+  ↓
+获取 After Snapshot（业务代码获取新对象）
+  ↓
+SDK.record() → DiffEngine.compare()
+  ↓
+SnapshotResolver 保存快照 → ChangeRepository 保存变更 → 完成
+```
+
+**性能优化：**
+
+- 仅对 `AuditAction.UPDATE` 执行 Diff（CREATE / DELETE 跳过）
+- 最大快照大小限制（默认 2MB，通过 `core.audit.diff.max-snapshot-size` 配置）
+- `@AuditIgnore` 排除每次必然变更的字段（version、updateTime）
+- Diff 失败不阻塞审计记录写入（静默降级）
+
+**数据库：**
+
+- V4 Flyway 迁移：新增 `audit_snapshot` 表和 `audit_change` 表
+- `audit_snapshot`：audit_id, snapshot_type (BEFORE/AFTER), content_json (完整对象 JSON)
+- `audit_change`：audit_id, field_name, change_type, before_value, after_value
+- 3 个索引：`idx_snapshot_audit_id`、`idx_change_audit_id`、`idx_change_field_name`、`idx_change_type`
+
+**API 新增：**
+
+- `GET /api/v1/audit/events/{id}/changes` — 获取指定审计事件的所有字段级变更
+- `GET /api/v1/audit/changes/search?field=xxx&after=yyy&page=1&size=20` — 跨事件按字段名和值搜索变更记录
+
+**SDK 增强：**
+
+```java
+// 新增带 before/after 的便捷方法
+audit.record(AuditModule.USER, AuditAction.UPDATE,
+    AuditEventType.USER_UPDATED,
+    "User", userId, operatorId, operatorName,
+    AuditResult.SUCCESS, "修改用户信息",
+    oldUser,  // before
+    newUser   // after
+);
+```
+
+before/after 对象通过 `metadata._before` / `metadata._after` 传递，DiffEngine 在 `record()` 流程中自动检出。
+
+**Dashboard 增强：**
+
+- `GET /api/v1/audit/dashboard` — 新增 `changeTypeDistribution`（今日变更类型分布：ADD/UPDATE/REMOVE 各多少次）、`topChangedFields`（今日变更最多的字段 Top 5）
+
+**配置：**
+
+- `core.audit.diff.enabled` — Diff 功能开关（默认 true）
+- `core.audit.diff.max-snapshot-size` — 最大快照大小（默认 2MB）
+
+**P3 不做（留到后续 Phase）：**
+
+- Timeline → P5（依赖多个 Diff 串联）
+- Replay → P6（需要请求和响应完整记录）
+- AI Change Analysis → P8（基于大量 Diff 数据）
+- 合规签名 → P7（与防篡改、电子签名一起实现）
+- 多版本对象比较 → P6（需要版本管理支持）
+- 自动回滚 → P8（属于智能运维能力）
+
+**测试：**
+
+54 个 JUnit 5 用例全部通过（含 22 个新增 Diff 策略测试 + 8 个现有测试 + 10 个 Repository 集成测试 + 8 个 Service 测试 + 5 个 Controller 测试 + 1 个 Dashboard 测试）。
+
+---
+
 ## [0.3.0] - 2026-07-17
 
 ### Added — P2: Context Runtime
