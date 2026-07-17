@@ -70,6 +70,17 @@ core:
         algorithm: SHA-256
       mask:
         enabled: true
+    # P8 Intelligence configuration
+    intelligence:
+      enabled: true
+      rule:
+        enabled: true
+      ai:
+        enabled: false
+        provider: openai
+        model: gpt-4o-mini
+        base-url: https://api.openai.com
+        api-key: ${OPENAI_API_KEY:}
     #   excluded-paths:
     #     - /actuator/health
     #     - /api/v1/audit/dashboard

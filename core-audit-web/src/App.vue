@@ -29,6 +29,10 @@ function isActive(path: string): boolean {
           <span class="nav-icon"><FontAwesomeIcon icon="clock" /></span>
           <span>Timeline</span>
         </router-link>
+        <router-link to="/intelligence" class="nav-item" :class="{ active: currentRoute.path.startsWith('/intelligence') }">
+          <span class="nav-icon"><FontAwesomeIcon icon="chart-bar" /></span>
+          <span>Intelligence</span>
+        </router-link>
       </nav>
       <div class="sidebar-footer">
         <span class="version">v1.0.0</span>

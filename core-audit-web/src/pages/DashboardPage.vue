@@ -55,6 +55,14 @@ onMounted(load)
       <StatCard label="平均耗时" :value="durationDisplay(stats?.avgTimelineDuration ?? 0)" icon="stopwatch" />
     </div>
 
+    <!-- P8 Intelligence 统计 -->
+    <div class="stats-grid" style="margin-top: 16px;">
+      <StatCard label="今日 Insight" :value="stats?.todayInsightCount ?? 0" icon="lightbulb" />
+      <StatCard label="Critical" :value="stats?.todayCriticalCount ?? 0" icon="exclamation-triangle" />
+      <StatCard label="High" :value="stats?.todayHighCount ?? 0" icon="arrow-up" />
+      <StatCard label="Avg Risk Score" :value="formatDecimal(stats?.avgRiskScore ?? 0)" icon="chart-line" />
+    </div>
+
     <!-- 最近操作 -->
     <div class="card" style="margin-top: 24px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">

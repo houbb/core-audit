@@ -49,6 +49,8 @@ public class AuditEventService {
     private final LegalHoldRepository legalHoldRepository;
     private final RetentionPolicyRepository retentionPolicyRepository;
     private final ExportTaskRepository exportTaskRepository;
+    // P8
+    private final IntelligenceService intelligenceService;
 
     public AuditEventService(AuditEventRepository repository, AuditEventPublisher publisher,
                              ContextResolver contextResolver,
@@ -60,7 +62,8 @@ public class AuditEventService {
                              IntegrityService integrityService,
                              LegalHoldRepository legalHoldRepository,
                              RetentionPolicyRepository retentionPolicyRepository,
-                             ExportTaskRepository exportTaskRepository) {
+                             ExportTaskRepository exportTaskRepository,
+                             IntelligenceService intelligenceService) {
         this.repository = repository;
         this.publisher = publisher;
         this.contextResolver = contextResolver;
@@ -74,6 +77,7 @@ public class AuditEventService {
         this.legalHoldRepository = legalHoldRepository;
         this.retentionPolicyRepository = retentionPolicyRepository;
         this.exportTaskRepository = exportTaskRepository;
+        this.intelligenceService = intelligenceService;
     }
 
     /**
@@ -122,6 +126,13 @@ public class AuditEventService {
             integrityService.sign(saved);
         } catch (Exception e) {
             log.warn("Integrity signing failed for audit {}: {}", saved.getId(), e.getMessage());
+        }
+
+        // P8: Intelligence analysis (fault-isolated — failure does NOT block audit recording)
+        try {
+            intelligenceService.analyze(saved);
+        } catch (Exception e) {
+            log.warn("Intelligence analysis failed for audit {}: {}", saved.getId(), e.getMessage());
         }
 
         // P5: Timeline append (sync incremental, multi-home)
@@ -216,6 +227,13 @@ public class AuditEventService {
         stats.setLegalHoldCount(legalHoldRepository.countActive());
         stats.setRetentionPolicyCount(retentionPolicyRepository.countEnabled());
         stats.setTodayExportCount(exportTaskRepository.countToday());
+
+        // P8 intelligence stats
+        IntelligenceService.IntelligenceDashboardStats intelStats = intelligenceService.getDashboardStats();
+        stats.setTodayInsightCount(intelStats.getTodayInsightCount());
+        stats.setTodayCriticalCount(intelStats.getTodayCriticalCount());
+        stats.setTodayHighCount(intelStats.getTodayHighCount());
+        stats.setAvgRiskScore(intelStats.getAvgRiskScore());
 
         // 最近 10 条操作
         AuditEventQuery recentQuery = new AuditEventQuery();
@@ -331,6 +349,12 @@ public class AuditEventService {
         private long retentionPolicyCount;
         private long todayExportCount;
 
+        // P8 intelligence stats
+        private long todayInsightCount;
+        private long todayCriticalCount;
+        private long todayHighCount;
+        private double avgRiskScore;
+
         public long getTodayTotal() { return todayTotal; }
         public void setTodayTotal(long todayTotal) { this.todayTotal = todayTotal; }
         public long getTodaySuccess() { return todaySuccess; }
@@ -381,5 +405,13 @@ public class AuditEventService {
         public void setRetentionPolicyCount(long retentionPolicyCount) { this.retentionPolicyCount = retentionPolicyCount; }
         public long getTodayExportCount() { return todayExportCount; }
         public void setTodayExportCount(long todayExportCount) { this.todayExportCount = todayExportCount; }
+        public long getTodayInsightCount() { return todayInsightCount; }
+        public void setTodayInsightCount(long todayInsightCount) { this.todayInsightCount = todayInsightCount; }
+        public long getTodayCriticalCount() { return todayCriticalCount; }
+        public void setTodayCriticalCount(long todayCriticalCount) { this.todayCriticalCount = todayCriticalCount; }
+        public long getTodayHighCount() { return todayHighCount; }
+        public void setTodayHighCount(long todayHighCount) { this.todayHighCount = todayHighCount; }
+        public double getAvgRiskScore() { return avgRiskScore; }
+        public void setAvgRiskScore(double avgRiskScore) { this.avgRiskScore = avgRiskScore; }
     }
 }

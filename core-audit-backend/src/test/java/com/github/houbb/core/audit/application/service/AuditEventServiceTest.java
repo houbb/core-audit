@@ -72,6 +72,9 @@ class AuditEventServiceTest {
     @Mock
     private ExportTaskRepository exportTaskRepository;
 
+    @Mock
+    private IntelligenceService intelligenceService;
+
     private AuditEventService service;
 
     @BeforeEach
@@ -79,7 +82,8 @@ class AuditEventServiceTest {
         service = new AuditEventService(repository, publisher, contextResolver,
                 diffEngine, snapshotResolver, changeRepository, auditQueryEngine,
                 timelineService, replayService,
-                integrityService, legalHoldRepository, retentionPolicyRepository, exportTaskRepository);
+                integrityService, legalHoldRepository, retentionPolicyRepository,
+                exportTaskRepository, intelligenceService);
     }
 
     @Test
@@ -231,6 +235,10 @@ class AuditEventServiceTest {
         when(repository.findAll(any())).thenReturn(new AuditEventPage(List.of(), 1, 10, 0));
         when(changeRepository.changeTypeDistributionToday()).thenReturn(java.util.Map.of("UPDATE", 100L));
         when(changeRepository.topChangedFieldsToday(5)).thenReturn(java.util.List.of());
+
+        // P8 intelligence mock
+        IntelligenceService.IntelligenceDashboardStats intelStats = new IntelligenceService.IntelligenceDashboardStats();
+        when(intelligenceService.getDashboardStats()).thenReturn(intelStats);
 
         AuditEventService.DashboardStats stats = service.getDashboardStats();
 

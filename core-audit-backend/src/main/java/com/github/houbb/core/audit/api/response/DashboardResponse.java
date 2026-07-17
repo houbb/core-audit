@@ -45,6 +45,12 @@ public class DashboardResponse {
     private long retentionPolicyCount;
     private long todayExportCount;
 
+    // ======== P8 intelligence stats ========
+    private long todayInsightCount;
+    private long todayCriticalCount;
+    private long todayHighCount;
+    private double avgRiskScore;
+
     // ======== Getters ========
 
     public long getTodayTotal() { return todayTotal; }
@@ -102,4 +108,12 @@ public class DashboardResponse {
     public DashboardResponse retentionPolicyCount(long v) { this.retentionPolicyCount = v; return this; }
     public long getTodayExportCount() { return todayExportCount; }
     public DashboardResponse todayExportCount(long v) { this.todayExportCount = v; return this; }
+    public long getTodayInsightCount() { return todayInsightCount; }
+    public DashboardResponse todayInsightCount(long v) { this.todayInsightCount = v; return this; }
+    public long getTodayCriticalCount() { return todayCriticalCount; }
+    public DashboardResponse todayCriticalCount(long v) { this.todayCriticalCount = v; return this; }
+    public long getTodayHighCount() { return todayHighCount; }
+    public DashboardResponse todayHighCount(long v) { this.todayHighCount = v; return this; }
+    public double getAvgRiskScore() { return avgRiskScore; }
+    public DashboardResponse avgRiskScore(double v) { this.avgRiskScore = v; return this; }
 }

@@ -58,6 +58,10 @@ public class AuditDashboardController {
                 .legalHoldCount(stats.getLegalHoldCount())
                 .retentionPolicyCount(stats.getRetentionPolicyCount())
                 .todayExportCount(stats.getTodayExportCount())
+                .todayInsightCount(stats.getTodayInsightCount())
+                .todayCriticalCount(stats.getTodayCriticalCount())
+                .todayHighCount(stats.getTodayHighCount())
+                .avgRiskScore(stats.getAvgRiskScore())
                 .recentEvents(stats.getRecentEvents().stream()
                         .map(AuditEventResponse::from)
                         .toList());

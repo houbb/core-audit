@@ -39,6 +39,17 @@ const router = createRouter({
       name: 'trace-timeline',
       component: () => import('@/pages/TimelineListPage.vue'),
     },
+    // ======== P8 Intelligence routes ========
+    {
+      path: '/intelligence',
+      name: 'intelligence-dashboard',
+      component: () => import('@/pages/IntelligencePage.vue'),
+    },
+    {
+      path: '/intelligence/insights/:id',
+      name: 'intelligence-detail',
+      component: () => import('@/pages/InsightDetailPage.vue'),
+    },
   ],
 })
 

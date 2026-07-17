@@ -30,6 +30,11 @@ import {
   faEquals,
   faStopwatch,
   faLayerGroup,
+  faLightbulb,
+  faChartLine,
+  faShieldHalved,
+  faShield,
+  faCheckCircle,
 } from '@fortawesome/free-solid-svg-icons'
 
 library.add(
@@ -55,6 +60,11 @@ library.add(
   faEquals,
   faStopwatch,
   faLayerGroup,
+  faLightbulb,
+  faChartLine,
+  faShieldHalved,
+  faShield,
+  faCheckCircle,
 )
 
 const app = createApp(App)

@@ -35,6 +35,11 @@ export interface DashboardStats {
   avgTimelineLength: number
   maxTimelineLength: number
   avgTimelineDuration: number
+  // P8 intelligence stats
+  todayInsightCount: number
+  todayCriticalCount: number
+  todayHighCount: number
+  avgRiskScore: number
 }
 
 export interface AuditQuery {
@@ -61,4 +66,35 @@ export interface Timeline {
   summary?: string
   events: AuditEvent[]
   createdAt: string
+}
+
+// ======== P8 Intelligence types ========
+
+export interface AuditRisk {
+  auditId: string
+  riskScore: number
+  riskLevel: string
+  reason: string
+  ruleName: string
+  aiAnalysis: string
+  analyzedAt: string
+}
+
+export interface AuditInsight {
+  id: string
+  auditId: string | null
+  title: string
+  severity: string
+  summary: string
+  suggestion: string
+  evidenceJson: string
+  agentName: string
+}
+
+export interface IntelligenceDashboard {
+  todayInsightCount: number
+  todayCriticalCount: number
+  todayHighCount: number
+  todayMediumCount: number
+  avgRiskScore: number
 }

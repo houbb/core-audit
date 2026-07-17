@@ -28,6 +28,9 @@ public class AuditProperties {
     /** P7 Compliance 配置 */
     private Compliance compliance = new Compliance();
 
+    /** P8 Intelligence 配置 */
+    private Intelligence intelligence = new Intelligence();
+
     public Sdk getSdk() { return sdk; }
     public void setSdk(Sdk sdk) { this.sdk = sdk; }
 
@@ -42,6 +45,9 @@ public class AuditProperties {
 
     public Compliance getCompliance() { return compliance; }
     public void setCompliance(Compliance compliance) { this.compliance = compliance; }
+
+    public Intelligence getIntelligence() { return intelligence; }
+    public void setIntelligence(Intelligence intelligence) { this.intelligence = intelligence; }
 
     public static class Sdk {
         /** 是否启用 SDK */
@@ -118,6 +124,64 @@ public class AuditProperties {
 
             public boolean isEnabled() { return enabled; }
             public void setEnabled(boolean enabled) { this.enabled = enabled; }
+        }
+    }
+
+    // ======== P8 Intelligence ========
+
+    public static class Intelligence {
+        /** 是否启用 Intelligence */
+        private boolean enabled = true;
+
+        /** Rule Engine 配置 */
+        private Rule rule = new Rule();
+
+        /** AI 配置 */
+        private Ai ai = new Ai();
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+
+        public Rule getRule() { return rule; }
+        public void setRule(Rule rule) { this.rule = rule; }
+
+        public Ai getAi() { return ai; }
+        public void setAi(Ai ai) { this.ai = ai; }
+
+        public static class Rule {
+            /** 是否启用规则引擎 */
+            private boolean enabled = true;
+
+            public boolean isEnabled() { return enabled; }
+            public void setEnabled(boolean enabled) { this.enabled = enabled; }
+        }
+
+        public static class Ai {
+            /** 是否启用 AI 分析 */
+            private boolean enabled = false;
+
+            /** AI Provider (如 openai) */
+            private String provider = "openai";
+
+            /** 模型名称 */
+            private String model = "gpt-4o-mini";
+
+            /** API Base URL */
+            private String baseUrl = "https://api.openai.com";
+
+            /** API Key */
+            private String apiKey = "";
+
+            public boolean isEnabled() { return enabled; }
+            public void setEnabled(boolean enabled) { this.enabled = enabled; }
+            public String getProvider() { return provider; }
+            public void setProvider(String provider) { this.provider = provider; }
+            public String getModel() { return model; }
+            public void setModel(String model) { this.model = model; }
+            public String getBaseUrl() { return baseUrl; }
+            public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
+            public String getApiKey() { return apiKey; }
+            public void setApiKey(String apiKey) { this.apiKey = apiKey; }
         }
     }
 }
