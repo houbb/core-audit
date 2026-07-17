@@ -1,5 +1,86 @@
 # CHANGELOG
 
+## [0.2.0] - 2026-07-17
+
+### Added — P1: Audit Event Runtime
+
+P1 将每一条审计记录升级为**可订阅的业务事件（Business Event）**，建立了统一的事件语义和扩展机制。
+
+> 核心原则：**Record First, Event Second** — 审计记录成功落库后再发布事件，保证数据一致性。
+
+**新增能力 (6项)：**
+
+- ✅ `AuditEventType` 枚举 — 24 种独立业务事件类型（USER_CREATED, USER_DELETED, LOGIN_SUCCESS, LOGIN_FAILED, FILE_UPLOADED, WORKFLOW_EXECUTED 等）
+- ✅ `EventBus` 接口 — 统一事件总线抽象（publish / subscribe / unsubscribe / getSubscribers），后续可替换为 Kafka / RabbitMQ 而不影响调用方
+- ✅ `SpringEventBus` — 默认 JVM 内存实现（基于 Spring ApplicationEventPublisher + 订阅者注册表）
+- ✅ `AuditEventPublisher` — 事件发布器，DB 写入成功后自动发布事件
+- ✅ `AuditEventSubscriber` 接口 — 其他模块实现此接口即可订阅审计事件
+- ✅ `LoggingAuditEventSubscriber` — 内置日志订阅者（监听全部事件，debug 级别）
+
+**领域模型升级：**
+
+`AuditEvent` 新增 8 个 P1 字段：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `eventId` | String | 事件 ID（UUID，区别于记录 ID） |
+| `eventType` | AuditEventType | 业务事件类型 |
+| `source` | String | 来源服务名（如 "core-user"） |
+| `version` | String | 事件版本，默认 "1.0" |
+| `occurredAt` | LocalDateTime | 业务发生时间 |
+| `published` | Boolean | 是否发布事件（默认 true） |
+| `publishTime` | LocalDateTime | 发布时间 |
+| `publishResult` | String | 发布结果（SUCCESS / FAIL） |
+
+**数据库：**
+
+- V2 Flyway 迁移：`ALTER TABLE audit_event` 新增 7 列 + 2 个索引
+- 新增 Repository 方法：`countTodayPublished()`, `countTodayPublishFailed()`
+
+**API 增强：**
+
+- `POST /api/v1/audit/events` — 请求体支持 eventType / source / version / publish 字段
+- `GET /api/v1/audit/events` — 新增 `eventType` 查询参数过滤
+- `GET /api/v1/audit/events/{id}` — 响应体包含全部 P1 字段
+- `GET /api/v1/audit/dashboard` — 新增 todayPublished / todayPublishFailed / subscriberCount 统计
+- `GET /api/v1/audit/subscribers` — **新增端点**，列出所有已注册的 Event Subscriber
+
+**SDK 增强：**
+
+- `AuditSdkPort` 新增 `record()` 重载方法（带 `AuditEventType` 参数，推荐使用）
+- Builder 模式自动推导 `source` 字段
+
+**架构设计：**
+
+```
+业务模块 → AuditSdkPort.record()
+              ↓
+         AuditEventService.record()
+              ↓
+         Repository.save()  [DB 落库]
+              ↓
+         AuditEventPublisher.publish()
+              ↓
+         EventBus.publish()
+              ↓
+         Subscriber.onEvent()  [同步通知]
+```
+
+**P1 不做（留到后续 Phase）：**
+
+- Event Retry / Dead Letter Queue → P6
+- Kafka / RabbitMQ / RocketMQ → P9
+- Event Schema Registry → P9
+- Event Version Migration → P9
+- Event Replay → P6
+- 分布式事件 → P9
+
+**测试：**
+
+23 个 JUnit 5 用例全部通过（新增 publisher mock 验证，Repository 层 P1 字段兼容测试）。
+
+---
+
 ## [0.1.0] - 2026-07-17
 
 ### Added — P0 MVP: Audit Runtime

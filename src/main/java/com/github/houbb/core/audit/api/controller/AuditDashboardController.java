@@ -2,6 +2,7 @@ package com.github.houbb.core.audit.api.controller;
 
 import com.github.houbb.core.audit.api.response.AuditEventResponse;
 import com.github.houbb.core.audit.api.response.DashboardResponse;
+import com.github.houbb.core.audit.application.event.EventBus;
 import com.github.houbb.core.audit.application.service.AuditEventService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,9 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuditDashboardController {
 
     private final AuditEventService auditEventService;
+    private final EventBus eventBus;
 
-    public AuditDashboardController(AuditEventService auditEventService) {
+    public AuditDashboardController(AuditEventService auditEventService, EventBus eventBus) {
         this.auditEventService = auditEventService;
+        this.eventBus = eventBus;
     }
 
     @GetMapping("/dashboard")
@@ -34,6 +37,9 @@ public class AuditDashboardController {
                 .todaySuccess(stats.getTodaySuccess())
                 .todayFail(stats.getTodayFail())
                 .activeModules(stats.getActiveModules())
+                .todayPublished(stats.getTodayPublished())
+                .todayPublishFailed(stats.getTodayPublishFailed())
+                .subscriberCount(eventBus.getSubscribers().size())
                 .recentEvents(stats.getRecentEvents().stream()
                         .map(AuditEventResponse::from)
                         .toList());

@@ -27,6 +27,16 @@ public class AuditEventResponse {
     private LocalDateTime createdAt;
     private Map<String, Object> metadata;
 
+    // ======== P1 fields ========
+    private String eventId;
+    private String eventType;
+    private String source;
+    private String version;
+    private LocalDateTime occurredAt;
+    private Boolean published;
+    private LocalDateTime publishTime;
+    private String publishResult;
+
     /**
      * 从领域对象构造
      */
@@ -48,6 +58,15 @@ public class AuditEventResponse {
         resp.traceId = event.getTraceId();
         resp.createdAt = event.getCreatedAt();
         resp.metadata = event.getMetadata();
+        // P1 fields
+        resp.eventId = event.getEventId();
+        resp.eventType = event.getEventType() != null ? event.getEventType().name() : null;
+        resp.source = event.getSource();
+        resp.version = event.getVersion();
+        resp.occurredAt = event.getOccurredAt();
+        resp.published = event.isPublish();
+        resp.publishTime = event.getPublishTime();
+        resp.publishResult = event.getPublishResult();
         return resp;
     }
 
@@ -68,4 +87,15 @@ public class AuditEventResponse {
     public String getTraceId() { return traceId; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public Map<String, Object> getMetadata() { return metadata; }
+
+    // ======== P1 Getters ========
+
+    public String getEventId() { return eventId; }
+    public String getEventType() { return eventType; }
+    public String getSource() { return source; }
+    public String getVersion() { return version; }
+    public LocalDateTime getOccurredAt() { return occurredAt; }
+    public Boolean getPublished() { return published; }
+    public LocalDateTime getPublishTime() { return publishTime; }
+    public String getPublishResult() { return publishResult; }
 }

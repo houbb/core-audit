@@ -2,6 +2,7 @@ package com.github.houbb.core.audit.application.port;
 
 import com.github.houbb.core.audit.application.domain.AuditEvent;
 import com.github.houbb.core.audit.application.domain.enums.AuditAction;
+import com.github.houbb.core.audit.application.domain.enums.AuditEventType;
 import com.github.houbb.core.audit.application.domain.enums.AuditModule;
 import com.github.houbb.core.audit.application.domain.enums.AuditResult;
 
@@ -20,7 +21,7 @@ public interface AuditSdkPort {
     void record(AuditEvent event);
 
     /**
-     * 便捷方法：Builder 模式一键记录
+     * 便捷方法：Builder 模式一键记录（P0 兼容，不带 eventType）
      */
     default void record(AuditModule module, AuditAction action,
                         String targetType, String targetId,
@@ -35,6 +36,30 @@ public interface AuditSdkPort {
                 .operatorName(operatorName)
                 .result(result)
                 .description(description)
+                .source(module.name())
+                .build());
+    }
+
+    /**
+     * 便捷方法：带 eventType（P1 新增 — 推荐使用）
+     */
+    default void record(AuditModule module, AuditAction action,
+                        AuditEventType eventType,
+                        String targetType, String targetId,
+                        String operatorId, String operatorName,
+                        AuditResult result, String description) {
+        record(AuditEvent.builder()
+                .module(module)
+                .action(action)
+                .eventType(eventType)
+                .targetType(targetType)
+                .targetId(targetId)
+                .operatorId(operatorId)
+                .operatorName(operatorName)
+                .result(result)
+                .description(description)
+                .source(module.name())
+                .publish(true)
                 .build());
     }
 }

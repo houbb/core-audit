@@ -19,8 +19,19 @@ public class AuditEventEntity {
     private String requestUri;
     private String requestMethod;
     private String traceId;
-    private String metadata;        // JSON 字符串
-    private String createdAt;       // ISO-8601 字符串
+    private String metadata;        // JSON
+
+    // ======== P1 event fields ========
+    private String eventId;         // 事件 ID（区别于记录 ID）
+    private String eventType;       // 事件类型枚举名
+    private String source;          // 来源服务名
+    private String version;         // 事件版本
+    private String occurredAt;      // 业务发生时间
+    private Integer published;      // 是否已发布（0/1）
+    private String publishTime;     // 发布时间
+    private String publishResult;   // 发布结果
+
+    private String createdAt;       // ISO-8601
     private String createTime;
     private String updateTime;
     private String createUser;
@@ -56,6 +67,25 @@ public class AuditEventEntity {
     public void setTraceId(String traceId) { this.traceId = traceId; }
     public String getMetadata() { return metadata; }
     public void setMetadata(String metadata) { this.metadata = metadata; }
+
+    // ======== P1 fields ========
+    public String getEventId() { return eventId; }
+    public void setEventId(String eventId) { this.eventId = eventId; }
+    public String getEventType() { return eventType; }
+    public void setEventType(String eventType) { this.eventType = eventType; }
+    public String getSource() { return source; }
+    public void setSource(String source) { this.source = source; }
+    public String getVersion() { return version; }
+    public void setVersion(String version) { this.version = version; }
+    public String getOccurredAt() { return occurredAt; }
+    public void setOccurredAt(String occurredAt) { this.occurredAt = occurredAt; }
+    public Integer getPublished() { return published; }
+    public void setPublished(Integer published) { this.published = published; }
+    public String getPublishTime() { return publishTime; }
+    public void setPublishTime(String publishTime) { this.publishTime = publishTime; }
+    public String getPublishResult() { return publishResult; }
+    public void setPublishResult(String publishResult) { this.publishResult = publishResult; }
+
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
     public String getCreateTime() { return createTime; }

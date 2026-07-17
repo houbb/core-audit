@@ -8,6 +8,7 @@ import com.github.houbb.core.audit.application.domain.AuditEventPage;
 import com.github.houbb.core.audit.application.query.AuditEventQuery;
 import com.github.houbb.core.audit.application.service.AuditEventService;
 import com.github.houbb.core.audit.application.domain.enums.AuditAction;
+import com.github.houbb.core.audit.application.domain.enums.AuditEventType;
 import com.github.houbb.core.audit.application.domain.enums.AuditModule;
 import com.github.houbb.core.audit.application.domain.enums.AuditResult;
 import com.github.houbb.core.audit.api.exception.ErrorResponse;
@@ -64,6 +65,11 @@ public class AuditEventController {
         event.setTraceId(request.getTraceId());
         event.setCreatedAt(request.getCreatedAt());
         event.setMetadata(request.getMetadata());
+        // P1 fields
+        event.setEventType(request.getEventType());
+        event.setSource(request.getSource());
+        event.setVersion(request.getVersion());
+        event.setPublish(request.getPublish());
 
         AuditEvent saved = auditEventService.record(event);
         return ResponseEntity.status(HttpStatus.CREATED).body(AuditEventResponse.from(saved));
@@ -82,6 +88,7 @@ public class AuditEventController {
             @RequestParam(required = false) String operator,
             @RequestParam(required = false) String result,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String eventType,
             @RequestParam(required = false) String startTime,
             @RequestParam(required = false) String endTime) {
 
@@ -93,6 +100,7 @@ public class AuditEventController {
         if (operator != null && !operator.isBlank()) query.setOperator(operator);
         if (result != null && !result.isBlank()) query.setResult(AuditResult.valueOf(result));
         if (keyword != null && !keyword.isBlank()) query.setKeyword(keyword);
+        if (eventType != null && !eventType.isBlank()) query.setEventType(AuditEventType.valueOf(eventType));
         if (startTime != null && !startTime.isBlank()) query.setStartTime(LocalDateTime.parse(startTime));
         if (endTime != null && !endTime.isBlank()) query.setEndTime(LocalDateTime.parse(endTime));
 

@@ -23,9 +23,11 @@ public class AuditEventService {
     private static final Logger log = LoggerFactory.getLogger(AuditEventService.class);
 
     private final AuditEventRepository repository;
+    private final AuditEventPublisher publisher;
 
-    public AuditEventService(AuditEventRepository repository) {
+    public AuditEventService(AuditEventRepository repository, AuditEventPublisher publisher) {
         this.repository = repository;
+        this.publisher = publisher;
     }
 
     /**
@@ -45,12 +47,28 @@ public class AuditEventService {
             event.setMetadata(new HashMap<>());
         }
 
-        log.debug("Recording audit event: module={}, action={}, target={}:{}, result={}",
-                event.getModule(), event.getAction(),
+        // P1 defaults
+        if (event.getEventId() == null || event.getEventId().isBlank()) {
+            event.setEventId(UUID.randomUUID().toString());
+        }
+        if (event.getOccurredAt() == null) {
+            event.setOccurredAt(LocalDateTime.now());
+        }
+        if (event.getVersion() == null || event.getVersion().isBlank()) {
+            event.setVersion("1.0");
+        }
+
+        log.debug("Recording audit event: module={}, action={}, eventType={}, target={}:{}, result={}",
+                event.getModule(), event.getAction(), event.getEventType(),
                 event.getTargetType(), event.getTargetId(),
                 event.getResult());
 
-        return repository.save(event);
+        AuditEvent saved = repository.save(event);
+
+        // Record First, Event Second
+        publisher.publish(saved);
+
+        return saved;
     }
 
     /**
@@ -90,6 +108,8 @@ public class AuditEventService {
         stats.setTodaySuccess(repository.countTodaySuccess());
         stats.setTodayFail(repository.countTodayFail());
         stats.setActiveModules(repository.countActiveModulesToday());
+        stats.setTodayPublished(repository.countTodayPublished());
+        stats.setTodayPublishFailed(repository.countTodayPublishFailed());
 
         // 最近 10 条操作
         AuditEventQuery recentQuery = new AuditEventQuery();
@@ -109,6 +129,8 @@ public class AuditEventService {
         private long todaySuccess;
         private long todayFail;
         private int activeModules;
+        private long todayPublished;
+        private long todayPublishFailed;
         private List<AuditEvent> recentEvents = Collections.emptyList();
 
         public long getTodayTotal() { return todayTotal; }
@@ -119,6 +141,10 @@ public class AuditEventService {
         public void setTodayFail(long todayFail) { this.todayFail = todayFail; }
         public int getActiveModules() { return activeModules; }
         public void setActiveModules(int activeModules) { this.activeModules = activeModules; }
+        public long getTodayPublished() { return todayPublished; }
+        public void setTodayPublished(long todayPublished) { this.todayPublished = todayPublished; }
+        public long getTodayPublishFailed() { return todayPublishFailed; }
+        public void setTodayPublishFailed(long todayPublishFailed) { this.todayPublishFailed = todayPublishFailed; }
         public List<AuditEvent> getRecentEvents() { return recentEvents; }
         public void setRecentEvents(List<AuditEvent> recentEvents) { this.recentEvents = recentEvents; }
     }

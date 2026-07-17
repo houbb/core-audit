@@ -1,6 +1,7 @@
 package com.github.houbb.core.audit.application.query;
 
 import com.github.houbb.core.audit.application.domain.enums.AuditAction;
+import com.github.houbb.core.audit.application.domain.enums.AuditEventType;
 import com.github.houbb.core.audit.application.domain.enums.AuditModule;
 import com.github.houbb.core.audit.application.domain.enums.AuditResult;
 
@@ -22,6 +23,9 @@ public class AuditEventQuery {
 
     /** 操作过滤 */
     private AuditAction action;
+
+    /** 事件类型过滤（P1 新增） */
+    private AuditEventType eventType;
 
     /** 操作人过滤 */
     private String operator;
@@ -48,6 +52,8 @@ public class AuditEventQuery {
     public void setModule(AuditModule module) { this.module = module; }
     public AuditAction getAction() { return action; }
     public void setAction(AuditAction action) { this.action = action; }
+    public AuditEventType getEventType() { return eventType; }
+    public void setEventType(AuditEventType eventType) { this.eventType = eventType; }
     public String getOperator() { return operator; }
     public void setOperator(String operator) { this.operator = operator; }
     public AuditResult getResult() { return result; }

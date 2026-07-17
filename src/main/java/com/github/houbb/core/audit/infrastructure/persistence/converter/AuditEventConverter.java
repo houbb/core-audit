@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.houbb.core.audit.application.domain.AuditEvent;
 import com.github.houbb.core.audit.application.domain.enums.AuditAction;
+import com.github.houbb.core.audit.application.domain.enums.AuditEventType;
 import com.github.houbb.core.audit.application.domain.enums.AuditModule;
 import com.github.houbb.core.audit.application.domain.enums.AuditResult;
 import com.github.houbb.core.audit.infrastructure.persistence.entity.AuditEventEntity;
@@ -44,6 +45,15 @@ public final class AuditEventConverter {
         entity.setRequestMethod(domain.getRequestMethod());
         entity.setTraceId(domain.getTraceId());
         entity.setCreatedAt(domain.getCreatedAt() != null ? domain.getCreatedAt().toString() : null);
+        // P1 fields
+        entity.setEventType(domain.getEventType() != null ? domain.getEventType().name() : null);
+        entity.setEventId(domain.getEventId());
+        entity.setSource(domain.getSource());
+        entity.setVersion(domain.getVersion());
+        entity.setOccurredAt(domain.getOccurredAt() != null ? domain.getOccurredAt().toString() : null);
+        entity.setPublished(domain.isPublish() != null ? (domain.isPublish() ? 1 : 0) : 1);
+        entity.setPublishTime(domain.getPublishTime() != null ? domain.getPublishTime().toString() : null);
+        entity.setPublishResult(domain.getPublishResult());
         entity.setMetadata(serializeMetadata(domain.getMetadata()));
         return entity;
     }
@@ -69,6 +79,15 @@ public final class AuditEventConverter {
         domain.setRequestMethod(entity.getRequestMethod());
         domain.setTraceId(entity.getTraceId());
         domain.setCreatedAt(entity.getCreatedAt() != null ? LocalDateTime.parse(entity.getCreatedAt()) : null);
+        // P1 fields
+        domain.setEventType(entity.getEventType() != null ? AuditEventType.valueOf(entity.getEventType()) : null);
+        domain.setEventId(entity.getEventId());
+        domain.setSource(entity.getSource());
+        domain.setVersion(entity.getVersion());
+        domain.setOccurredAt(entity.getOccurredAt() != null ? LocalDateTime.parse(entity.getOccurredAt()) : null);
+        domain.setPublish(entity.getPublished() != null && entity.getPublished() == 1);
+        domain.setPublishTime(entity.getPublishTime() != null ? LocalDateTime.parse(entity.getPublishTime()) : null);
+        domain.setPublishResult(entity.getPublishResult());
         domain.setMetadata(deserializeMetadata(entity.getMetadata()));
         return domain;
     }

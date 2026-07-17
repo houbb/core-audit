@@ -6,6 +6,7 @@ import com.github.houbb.core.audit.application.domain.AuditEvent;
 import com.github.houbb.core.audit.application.domain.enums.AuditAction;
 import com.github.houbb.core.audit.application.domain.enums.AuditModule;
 import com.github.houbb.core.audit.application.domain.enums.AuditResult;
+import com.github.houbb.core.audit.application.event.EventBus;
 import com.github.houbb.core.audit.application.service.AuditEventService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,6 +38,9 @@ class AuditEventControllerTest {
     @Mock
     private AuditEventService auditEventService;
 
+    @Mock
+    private EventBus eventBus;
+
     @InjectMocks
     private AuditEventController auditEventController;
 
@@ -46,7 +50,7 @@ class AuditEventControllerTest {
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(
                         auditEventController,
-                        new AuditDashboardController(auditEventService))
+                        new AuditDashboardController(auditEventService, eventBus))
                 .setControllerAdvice(new com.github.houbb.core.audit.api.exception.GlobalExceptionHandler())
                 .build();
     }

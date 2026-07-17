@@ -35,7 +35,8 @@ class JdbcAuditEventRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        // 创建测试表
+        // 删除旧表（如果存在），然后创建含 P1 字段的测试表
+        jdbcTemplate.execute("DROP TABLE IF EXISTS audit_event");
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS audit_event (
                     id              VARCHAR(255) PRIMARY KEY,
@@ -53,6 +54,14 @@ class JdbcAuditEventRepositoryTest {
                     trace_id        VARCHAR(255),
                     metadata        VARCHAR(4000),
                     created_at      VARCHAR(30),
+                    event_id         VARCHAR(255),
+                    event_type       VARCHAR(100),
+                    source           VARCHAR(100),
+                    version          VARCHAR(20) DEFAULT '1.0',
+                    occurred_at      VARCHAR(30),
+                    published        INTEGER DEFAULT 1,
+                    publish_time     VARCHAR(30),
+                    publish_result   VARCHAR(20),
                     create_time     VARCHAR(30),
                     update_time     VARCHAR(30),
                     create_user     VARCHAR(100),

@@ -1,6 +1,7 @@
 package com.github.houbb.core.audit.api.request;
 
 import com.github.houbb.core.audit.application.domain.enums.AuditAction;
+import com.github.houbb.core.audit.application.domain.enums.AuditEventType;
 import com.github.houbb.core.audit.application.domain.enums.AuditModule;
 import com.github.houbb.core.audit.application.domain.enums.AuditResult;
 import jakarta.validation.constraints.NotNull;
@@ -61,6 +62,20 @@ public class CreateAuditEventRequest {
     /** JSON 扩展信息 */
     private Map<String, Object> metadata;
 
+    // ======== P1 fields ========
+
+    /** 事件类型（P1 新增） */
+    private AuditEventType eventType;
+
+    /** 来源服务名（P1 新增 — 如 "core-user"） */
+    private String source;
+
+    /** 事件版本（P1 新增 — 默认 "1.0"） */
+    private String version;
+
+    /** 是否发布事件（P1 新增 — 默认 true） */
+    private Boolean publish = true;
+
     // ======== Getters & Setters ========
 
     public String getId() { return id; }
@@ -93,4 +108,15 @@ public class CreateAuditEventRequest {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public Map<String, Object> getMetadata() { return metadata; }
     public void setMetadata(Map<String, Object> metadata) { this.metadata = metadata; }
+
+    // ======== P1 getters & setters ========
+
+    public AuditEventType getEventType() { return eventType; }
+    public void setEventType(AuditEventType eventType) { this.eventType = eventType; }
+    public String getSource() { return source; }
+    public void setSource(String source) { this.source = source; }
+    public String getVersion() { return version; }
+    public void setVersion(String version) { this.version = version; }
+    public Boolean getPublish() { return publish; }
+    public void setPublish(Boolean publish) { this.publish = publish; }
 }

@@ -3,6 +3,7 @@ package com.github.houbb.core.audit.application.service;
 import com.github.houbb.core.audit.application.domain.AuditEvent;
 import com.github.houbb.core.audit.application.domain.AuditEventPage;
 import com.github.houbb.core.audit.application.domain.enums.AuditAction;
+import com.github.houbb.core.audit.application.domain.enums.AuditEventType;
 import com.github.houbb.core.audit.application.domain.enums.AuditModule;
 import com.github.houbb.core.audit.application.domain.enums.AuditResult;
 import com.github.houbb.core.audit.application.port.AuditEventRepository;
@@ -16,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.ByteArrayOutputStream;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,19 +31,23 @@ class AuditEventServiceTest {
     @Mock
     private AuditEventRepository repository;
 
+    @Mock
+    private AuditEventPublisher publisher;
+
     private AuditEventService service;
 
     @BeforeEach
     void setUp() {
-        service = new AuditEventService(repository);
+        service = new AuditEventService(repository, publisher);
     }
 
     @Test
-    @DisplayName("record 自动生成 ID 和创建时间")
+    @DisplayName("record 自动生成 ID 和创建时间，同时生成 P1 默认字段")
     void shouldAutoGenerateIdAndTime() {
         AuditEvent event = AuditEvent.builder()
                 .module(AuditModule.USER)
                 .action(AuditAction.DELETE)
+                .eventType(AuditEventType.USER_DELETED)
                 .result(AuditResult.SUCCESS)
                 .description("测试")
                 .build();
@@ -52,7 +58,12 @@ class AuditEventServiceTest {
 
         assertNotNull(saved.getId());
         assertNotNull(saved.getCreatedAt());
+        assertNotNull(saved.getEventId());
+        assertNotNull(saved.getOccurredAt());
+        assertNotNull(saved.getVersion());
+        assertEquals("1.0", saved.getVersion());
         verify(repository).save(any());
+        verify(publisher).publish(any());
     }
 
     @Test
@@ -62,6 +73,7 @@ class AuditEventServiceTest {
                 .id("custom-id-123")
                 .module(AuditModule.AI)
                 .action(AuditAction.CALL)
+                .eventType(AuditEventType.AI_REQUESTED)
                 .result(AuditResult.SUCCESS)
                 .build();
 
@@ -69,6 +81,43 @@ class AuditEventServiceTest {
 
         AuditEvent saved = service.record(event);
         assertEquals("custom-id-123", saved.getId());
+        verify(publisher).publish(any());
+    }
+
+    @Test
+    @DisplayName("record 发布事件（publish=true）")
+    void shouldPublishEventWhenPublishIsTrue() {
+        AuditEvent event = AuditEvent.builder()
+                .module(AuditModule.USER)
+                .action(AuditAction.CREATE)
+                .eventType(AuditEventType.USER_CREATED)
+                .result(AuditResult.SUCCESS)
+                .publish(true)
+                .build();
+
+        when(repository.save(any())).thenReturn(event);
+
+        service.record(event);
+
+        verify(publisher).publish(event);
+    }
+
+    @Test
+    @DisplayName("record 不发布事件（publish=false）")
+    void shouldNotPublishEventWhenPublishIsFalse() {
+        AuditEvent event = AuditEvent.builder()
+                .module(AuditModule.USER)
+                .action(AuditAction.CREATE)
+                .eventType(AuditEventType.USER_CREATED)
+                .result(AuditResult.SUCCESS)
+                .publish(false)
+                .build();
+
+        when(repository.save(any())).thenReturn(event);
+
+        service.record(event);
+
+        verify(publisher).publish(event);
     }
 
     @Test
@@ -105,6 +154,7 @@ class AuditEventServiceTest {
         event.setId("evt-1");
         event.setModule(AuditModule.USER);
         event.setAction(AuditAction.DELETE);
+        event.setEventType(AuditEventType.USER_DELETED);
         event.setTargetType("USER");
         event.setTargetId("1001");
         event.setOperatorName("echo");
@@ -124,12 +174,14 @@ class AuditEventServiceTest {
     }
 
     @Test
-    @DisplayName("getDashboardStats 汇总统计数据")
+    @DisplayName("getDashboardStats 汇总统计数据（含 P1 字段）")
     void shouldReturnDashboardStats() {
         when(repository.countToday()).thenReturn(100L);
         when(repository.countTodaySuccess()).thenReturn(95L);
         when(repository.countTodayFail()).thenReturn(5L);
         when(repository.countActiveModulesToday()).thenReturn(3);
+        when(repository.countTodayPublished()).thenReturn(95L);
+        when(repository.countTodayPublishFailed()).thenReturn(2L);
         when(repository.findAll(any())).thenReturn(new AuditEventPage(List.of(), 1, 10, 0));
 
         AuditEventService.DashboardStats stats = service.getDashboardStats();
@@ -138,5 +190,7 @@ class AuditEventServiceTest {
         assertEquals(95, stats.getTodaySuccess());
         assertEquals(5, stats.getTodayFail());
         assertEquals(3, stats.getActiveModules());
+        assertEquals(95, stats.getTodayPublished());
+        assertEquals(2, stats.getTodayPublishFailed());
     }
 }

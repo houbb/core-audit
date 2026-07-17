@@ -29,6 +29,16 @@ public class AuditEventRowMapper implements RowMapper<AuditEventEntity> {
         entity.setTraceId(rs.getString("trace_id"));
         entity.setMetadata(rs.getString("metadata"));
         entity.setCreatedAt(rs.getString("created_at"));
+        // P1 fields
+        entity.setEventId(rs.getString("event_id"));
+        entity.setEventType(rs.getString("event_type"));
+        entity.setSource(rs.getString("source"));
+        entity.setVersion(rs.getString("version"));
+        entity.setOccurredAt(rs.getString("occurred_at"));
+        int pub = rs.getInt("published");
+        entity.setPublished(rs.wasNull() ? null : pub);
+        entity.setPublishTime(rs.getString("publish_time"));
+        entity.setPublishResult(rs.getString("publish_result"));
         entity.setCreateTime(rs.getString("create_time"));
         entity.setUpdateTime(rs.getString("update_time"));
         entity.setCreateUser(rs.getString("create_user"));

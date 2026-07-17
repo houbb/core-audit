@@ -71,4 +71,18 @@ public interface AuditEventRepository {
      * @return 活跃模块数
      */
     int countActiveModulesToday();
+
+    /**
+     * 今天发布成功数（P1 新增）
+     *
+     * @return 今日发布成功数
+     */
+    long countTodayPublished();
+
+    /**
+     * 今天发布失败数（P1 新增）
+     *
+     * @return 今日发布失败数
+     */
+    long countTodayPublishFailed();
 }

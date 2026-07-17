@@ -2,6 +2,7 @@ package com.github.houbb.core.audit.infrastructure.persistence.repository;
 
 import com.github.houbb.core.audit.application.domain.AuditEvent;
 import com.github.houbb.core.audit.application.domain.AuditEventPage;
+import com.github.houbb.core.audit.application.domain.enums.AuditEventType;
 import com.github.houbb.core.audit.application.port.AuditEventRepository;
 import com.github.houbb.core.audit.application.query.AuditEventQuery;
 import com.github.houbb.core.audit.infrastructure.persistence.converter.AuditEventConverter;
@@ -47,8 +48,10 @@ public class JdbcAuditEventRepository implements AuditEventRepository {
                 "INSERT INTO audit_event (" +
                 "id, module, action, target_type, target_id, operator_id, operator_name, " +
                 "result, description, client_ip, request_uri, request_method, trace_id, " +
-                "metadata, created_at, create_time, update_time, create_user, update_user" +
-                ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "metadata, created_at, " +
+                "event_id, event_type, source, version, occurred_at, published, publish_time, publish_result, " +
+                "create_time, update_time, create_user, update_user" +
+                ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 entity.getId(),
                 entity.getModule(),
                 entity.getAction(),
@@ -64,6 +67,14 @@ public class JdbcAuditEventRepository implements AuditEventRepository {
                 entity.getTraceId(),
                 entity.getMetadata(),
                 entity.getCreatedAt() != null ? entity.getCreatedAt() : now,
+                entity.getEventId(),
+                entity.getEventType(),
+                entity.getSource(),
+                entity.getVersion(),
+                entity.getOccurredAt(),
+                entity.getPublished() != null ? entity.getPublished() : 1,
+                entity.getPublishTime(),
+                entity.getPublishResult(),
                 entity.getCreateTime(),
                 entity.getUpdateTime(),
                 entity.getCreateUser(),
@@ -160,6 +171,28 @@ public class JdbcAuditEventRepository implements AuditEventRepository {
         return result != null ? result : 0;
     }
 
+    @Override
+    public long countTodayPublished() {
+        String today = LocalDate.now().toString();
+        Long result = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM audit_event WHERE created_at >= ? AND published = 1",
+                Long.class,
+                today
+        );
+        return result != null ? result : 0;
+    }
+
+    @Override
+    public long countTodayPublishFailed() {
+        String today = LocalDate.now().toString();
+        Long result = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM audit_event WHERE created_at >= ? AND publish_result = 'FAIL'",
+                Long.class,
+                today
+        );
+        return result != null ? result : 0;
+    }
+
     // ======== private helpers ========
 
     private void appendFilters(StringBuilder sql, List<Object> params, AuditEventQuery query) {
@@ -170,6 +203,10 @@ public class JdbcAuditEventRepository implements AuditEventRepository {
         if (query.getAction() != null) {
             sql.append(" AND action = ?");
             params.add(query.getAction().name());
+        }
+        if (query.getEventType() != null) {
+            sql.append(" AND event_type = ?");
+            params.add(query.getEventType().name());
         }
         if (query.getResult() != null) {
             sql.append(" AND result = ?");

@@ -1,6 +1,7 @@
 package com.github.houbb.core.audit.application.domain;
 
 import com.github.houbb.core.audit.application.domain.enums.AuditAction;
+import com.github.houbb.core.audit.application.domain.enums.AuditEventType;
 import com.github.houbb.core.audit.application.domain.enums.AuditModule;
 import com.github.houbb.core.audit.application.domain.enums.AuditResult;
 
@@ -21,6 +22,30 @@ public class AuditEvent {
 
     /** 操作类型 */
     private AuditAction action;
+
+    /** 事件类型（P1 新增 — 业务语义级别的事件类型） */
+    private AuditEventType eventType;
+
+    /** 事件 ID（P1 新增 — 区别于记录 ID，用于事件路由和去重） */
+    private String eventId;
+
+    /** 来源服务名（P1 新增 — 如 "core-user"、"core-file"） */
+    private String source;
+
+    /** 事件版本（P1 新增 — 默认 "1.0"） */
+    private String version;
+
+    /** 业务发生时间（P1 新增） */
+    private LocalDateTime occurredAt;
+
+    /** 是否已发布（P1 新增） */
+    private Boolean publish = true;
+
+    /** 发布时间（P1 新增） */
+    private LocalDateTime publishTime;
+
+    /** 发布结果（P1 新增 — SUCCESS/FAIL） */
+    private String publishResult;
 
     /** 目标对象类型 */
     private String targetType;
@@ -67,6 +92,14 @@ public class AuditEvent {
         this.id = builder.id;
         this.module = builder.module;
         this.action = builder.action;
+        this.eventType = builder.eventType;
+        this.eventId = builder.eventId;
+        this.source = builder.source;
+        this.version = builder.version;
+        this.occurredAt = builder.occurredAt;
+        this.publish = builder.publish;
+        this.publishTime = builder.publishTime;
+        this.publishResult = builder.publishResult;
         this.targetType = builder.targetType;
         this.targetId = builder.targetId;
         this.operatorId = builder.operatorId;
@@ -91,6 +124,14 @@ public class AuditEvent {
         private String id;
         private AuditModule module;
         private AuditAction action;
+        private AuditEventType eventType;
+        private String eventId;
+        private String source;
+        private String version;
+        private LocalDateTime occurredAt;
+        private Boolean publish = true;
+        private LocalDateTime publishTime;
+        private String publishResult;
         private String targetType;
         private String targetId;
         private String operatorId;
@@ -107,6 +148,14 @@ public class AuditEvent {
         public Builder id(String id) { this.id = id; return this; }
         public Builder module(AuditModule module) { this.module = module; return this; }
         public Builder action(AuditAction action) { this.action = action; return this; }
+        public Builder eventType(AuditEventType eventType) { this.eventType = eventType; return this; }
+        public Builder eventId(String eventId) { this.eventId = eventId; return this; }
+        public Builder source(String source) { this.source = source; return this; }
+        public Builder version(String version) { this.version = version; return this; }
+        public Builder occurredAt(LocalDateTime occurredAt) { this.occurredAt = occurredAt; return this; }
+        public Builder publish(Boolean publish) { this.publish = publish; return this; }
+        public Builder publishTime(LocalDateTime publishTime) { this.publishTime = publishTime; return this; }
+        public Builder publishResult(String publishResult) { this.publishResult = publishResult; return this; }
         public Builder targetType(String targetType) { this.targetType = targetType; return this; }
         public Builder targetId(String targetId) { this.targetId = targetId; return this; }
         public Builder operatorId(String operatorId) { this.operatorId = operatorId; return this; }
@@ -130,6 +179,14 @@ public class AuditEvent {
     public String getId() { return id; }
     public AuditModule getModule() { return module; }
     public AuditAction getAction() { return action; }
+    public AuditEventType getEventType() { return eventType; }
+    public String getEventId() { return eventId; }
+    public String getSource() { return source; }
+    public String getVersion() { return version; }
+    public LocalDateTime getOccurredAt() { return occurredAt; }
+    public Boolean isPublish() { return publish; }
+    public LocalDateTime getPublishTime() { return publishTime; }
+    public String getPublishResult() { return publishResult; }
     public String getTargetType() { return targetType; }
     public String getTargetId() { return targetId; }
     public String getOperatorId() { return operatorId; }
@@ -148,6 +205,14 @@ public class AuditEvent {
     public void setId(String id) { this.id = id; }
     public void setModule(AuditModule module) { this.module = module; }
     public void setAction(AuditAction action) { this.action = action; }
+    public void setEventType(AuditEventType eventType) { this.eventType = eventType; }
+    public void setEventId(String eventId) { this.eventId = eventId; }
+    public void setSource(String source) { this.source = source; }
+    public void setVersion(String version) { this.version = version; }
+    public void setOccurredAt(LocalDateTime occurredAt) { this.occurredAt = occurredAt; }
+    public void setPublish(Boolean publish) { this.publish = publish; }
+    public void setPublishTime(LocalDateTime publishTime) { this.publishTime = publishTime; }
+    public void setPublishResult(String publishResult) { this.publishResult = publishResult; }
     public void setTargetType(String targetType) { this.targetType = targetType; }
     public void setTargetId(String targetId) { this.targetId = targetId; }
     public void setOperatorId(String operatorId) { this.operatorId = operatorId; }
