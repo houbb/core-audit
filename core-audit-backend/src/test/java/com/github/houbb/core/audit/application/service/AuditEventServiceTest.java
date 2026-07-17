@@ -54,12 +54,16 @@ class AuditEventServiceTest {
     @Mock
     private TimelineService timelineService;
 
+    @Mock
+    private ReplayService replayService;
+
     private AuditEventService service;
 
     @BeforeEach
     void setUp() {
         service = new AuditEventService(repository, publisher, contextResolver,
-                diffEngine, snapshotResolver, changeRepository, auditQueryEngine, timelineService);
+                diffEngine, snapshotResolver, changeRepository, auditQueryEngine,
+                timelineService, replayService);
     }
 
     @Test

@@ -22,6 +22,9 @@ public class AuditProperties {
     /** P3 Diff 配置 */
     private Diff diff = new Diff();
 
+    /** P6 Replay 配置 */
+    private Replay replay = new Replay();
+
     public Sdk getSdk() { return sdk; }
     public void setSdk(Sdk sdk) { this.sdk = sdk; }
 
@@ -30,6 +33,9 @@ public class AuditProperties {
 
     public Diff getDiff() { return diff; }
     public void setDiff(Diff diff) { this.diff = diff; }
+
+    public Replay getReplay() { return replay; }
+    public void setReplay(Replay replay) { this.replay = replay; }
 
     public static class Sdk {
         /** 是否启用 SDK */
@@ -63,5 +69,13 @@ public class AuditProperties {
         public void setEnabled(boolean enabled) { this.enabled = enabled; }
         public Long getMaxSnapshotSize() { return maxSnapshotSize; }
         public void setMaxSnapshotSize(Long maxSnapshotSize) { this.maxSnapshotSize = maxSnapshotSize; }
+    }
+
+    public static class Replay {
+        /** 是否启用 Replay */
+        private boolean enabled = true;
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
     }
 }

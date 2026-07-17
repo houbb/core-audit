@@ -40,13 +40,15 @@ public class AuditEventService {
     private final ChangeRepository changeRepository;
     private final AuditQueryEngine auditQueryEngine;
     private final TimelineService timelineService;
+    private final ReplayService replayService;
 
     public AuditEventService(AuditEventRepository repository, AuditEventPublisher publisher,
                              ContextResolver contextResolver,
                              DiffEngine diffEngine, SnapshotResolver snapshotResolver,
                              ChangeRepository changeRepository,
                              AuditQueryEngine auditQueryEngine,
-                             TimelineService timelineService) {
+                             TimelineService timelineService,
+                             ReplayService replayService) {
         this.repository = repository;
         this.publisher = publisher;
         this.contextResolver = contextResolver;
@@ -55,6 +57,7 @@ public class AuditEventService {
         this.changeRepository = changeRepository;
         this.auditQueryEngine = auditQueryEngine;
         this.timelineService = timelineService;
+        this.replayService = replayService;
     }
 
     /**
@@ -179,6 +182,12 @@ public class AuditEventService {
         stats.setMaxTimelineLength(timelineService.maxLengthToday());
         stats.setAvgTimelineDuration(timelineService.avgDurationToday());
 
+        // P6 replay stats
+        stats.setTodayReplayCount(replayService.countToday());
+        stats.setAvgReplaySteps(replayService.avgStepsToday());
+        stats.setMaxReplaySteps(replayService.maxStepsToday());
+        stats.setAvgReplayDuration(replayService.avgDurationToday());
+
         // 最近 10 条操作
         AuditEventQuery recentQuery = new AuditEventQuery();
         recentQuery.setPage(1);
@@ -281,6 +290,12 @@ public class AuditEventService {
         private int maxTimelineLength;
         private double avgTimelineDuration;
 
+        // P6 replay stats
+        private long todayReplayCount;
+        private double avgReplaySteps;
+        private int maxReplaySteps;
+        private double avgReplayDuration;
+
         public long getTodayTotal() { return todayTotal; }
         public void setTodayTotal(long todayTotal) { this.todayTotal = todayTotal; }
         public long getTodaySuccess() { return todaySuccess; }
@@ -315,5 +330,13 @@ public class AuditEventService {
         public void setMaxTimelineLength(int maxTimelineLength) { this.maxTimelineLength = maxTimelineLength; }
         public double getAvgTimelineDuration() { return avgTimelineDuration; }
         public void setAvgTimelineDuration(double avgTimelineDuration) { this.avgTimelineDuration = avgTimelineDuration; }
+        public long getTodayReplayCount() { return todayReplayCount; }
+        public void setTodayReplayCount(long todayReplayCount) { this.todayReplayCount = todayReplayCount; }
+        public double getAvgReplaySteps() { return avgReplaySteps; }
+        public void setAvgReplaySteps(double avgReplaySteps) { this.avgReplaySteps = avgReplaySteps; }
+        public int getMaxReplaySteps() { return maxReplaySteps; }
+        public void setMaxReplaySteps(int maxReplaySteps) { this.maxReplaySteps = maxReplaySteps; }
+        public double getAvgReplayDuration() { return avgReplayDuration; }
+        public void setAvgReplayDuration(double avgReplayDuration) { this.avgReplayDuration = avgReplayDuration; }
     }
 }

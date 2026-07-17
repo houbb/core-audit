@@ -1,5 +1,62 @@
 # CHANGELOG
 
+## [0.7.0] - 2026-07-17
+
+### Added — P6: Replay Runtime
+
+P6 将 `core-audit` 从"知道发生了什么"升级为**完整操作重放（Operation Replay）**，把 Timeline 转换为可逐步回放的操作过程。
+
+> 核心目标：**重建完整操作过程，支持回放、调查、培训和故障分析。**
+
+**架构升级：**
+
+```
+Audit Event → Timeline → ReplayStrategy (SPI) → ReplayService → ReplaySession → Player
+                    │
+            DefaultReplayStrategy (catch-all, with LOGIN/REQUEST/DATABASE/AUDIT/EVENT/FINISH steps)
+```
+
+**新增核心组件：**
+
+| 组件 | 位置 | 职责 |
+|------|------|------|
+| `ReplaySession` | `application/domain/replay/` | Replay 聚合根（Builder 模式，含步骤列表） |
+| `ReplayStep` | `application/domain/replay/` | 操作步骤值对象（sequence + stepType + title + payload） |
+| `ReplayStepType` | `application/domain/enums/` | LOGIN / OPEN_PAGE / CLICK_BUTTON / INPUT / REQUEST / DATABASE / AUDIT / EVENT / FINISH |
+| `ReplayStrategy` | `application/replay/` | 可插拔 Replay 构建策略（SPI 扩展点） |
+| `DefaultReplayStrategy` | `infrastructure/replay/` | 默认通用策略，从 AuditEvent 序列生成 ReplayStep 序列 |
+| `ReplayService` | `application/service/` | 核心服务（缓存优先 + Strategy 编排 + 容错） |
+| `ReplayRepository` | `application/port/` | Replay 仓储端口 |
+| `JdbcReplayRepository` | `infrastructure/persistence/repository/` | JDBC 实现（SQLite/MySQL 双方言，UPSERT） |
+| `ReplayController` | `api/controller/` | REST API（4 个端点） |
+
+**数据库变更：**
+- `audit_replay` — Replay 主表（timeline_id UNIQUE，一条 Timeline 一条 Replay）
+- `audit_replay_step` — Replay 步骤表（按 sequence 排序）
+
+**API 新增：**
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/audit/replay/{id}` | 获取完整 ReplaySession（含所有步骤） |
+| POST | `/api/v1/audit/replay/build` | 构建 Replay（缓存优先） |
+| GET | `/api/v1/audit/replay/{id}/steps` | 获取步骤列表 |
+| GET | `/api/v1/audit/replay/timeline/{timelineId}` | 根据 Timeline 获取 Replay |
+
+**Dashboard 扩展：**
+- `todayReplayCount` — 今日 Replay 数量
+- `avgReplaySteps` — 平均步骤数
+- `maxReplaySteps` — 最大步骤数
+- `avgReplayDuration` — 平均耗时
+
+**核心设计决策：**
+1. **缓存优先** — 第一次 build 写入 DB，后续查询直接读取，不重复构建
+2. **First-match-wins** — 与 Timeline 的多归属不同，Replay 采用首个匹配策略（通过 DefaultReplayStrategy 兜底）
+3. **Replay 不执行** — 只重建过程，不重新调用接口或修改数据
+4. **结构化步骤** — 9 种固定 ReplayStepType，确保前端播放器的一致性
+5. **插件化构建** — ReplayStrategy SPI 支持不同业务注册自定义构建策略
+
+---
+
 ## [0.6.0] - 2026-07-17
 
 ### Added — P5: Timeline Runtime

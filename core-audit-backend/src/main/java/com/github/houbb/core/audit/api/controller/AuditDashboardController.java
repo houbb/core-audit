@@ -50,6 +50,10 @@ public class AuditDashboardController {
                 .avgTimelineLength(stats.getAvgTimelineLength())
                 .maxTimelineLength(stats.getMaxTimelineLength())
                 .avgTimelineDuration(stats.getAvgTimelineDuration())
+                .todayReplayCount(stats.getTodayReplayCount())
+                .avgReplaySteps(stats.getAvgReplaySteps())
+                .maxReplaySteps(stats.getMaxReplaySteps())
+                .avgReplayDuration(stats.getAvgReplayDuration())
                 .recentEvents(stats.getRecentEvents().stream()
                         .map(AuditEventResponse::from)
                         .toList());

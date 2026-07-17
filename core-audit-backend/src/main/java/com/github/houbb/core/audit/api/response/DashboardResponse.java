@@ -33,6 +33,12 @@ public class DashboardResponse {
     private int maxTimelineLength;
     private double avgTimelineDuration;
 
+    // ======== P6 replay stats ========
+    private long todayReplayCount;
+    private double avgReplaySteps;
+    private int maxReplaySteps;
+    private double avgReplayDuration;
+
     // ======== Getters ========
 
     public long getTodayTotal() { return todayTotal; }
@@ -53,6 +59,10 @@ public class DashboardResponse {
     public double getAvgTimelineLength() { return avgTimelineLength; }
     public int getMaxTimelineLength() { return maxTimelineLength; }
     public double getAvgTimelineDuration() { return avgTimelineDuration; }
+    public long getTodayReplayCount() { return todayReplayCount; }
+    public double getAvgReplaySteps() { return avgReplaySteps; }
+    public int getMaxReplaySteps() { return maxReplaySteps; }
+    public double getAvgReplayDuration() { return avgReplayDuration; }
 
     // ======== Builder-style setters ========
 
@@ -74,4 +84,8 @@ public class DashboardResponse {
     public DashboardResponse avgTimelineLength(double v) { this.avgTimelineLength = v; return this; }
     public DashboardResponse maxTimelineLength(int v) { this.maxTimelineLength = v; return this; }
     public DashboardResponse avgTimelineDuration(double v) { this.avgTimelineDuration = v; return this; }
+    public DashboardResponse todayReplayCount(long v) { this.todayReplayCount = v; return this; }
+    public DashboardResponse avgReplaySteps(double v) { this.avgReplaySteps = v; return this; }
+    public DashboardResponse maxReplaySteps(int v) { this.maxReplaySteps = v; return this; }
+    public DashboardResponse avgReplayDuration(double v) { this.avgReplayDuration = v; return this; }
 }
