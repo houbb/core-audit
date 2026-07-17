@@ -63,6 +63,13 @@ core:
     # P2 Context configuration
     context:
       enabled: true
+    # P7 Compliance configuration
+    compliance:
+      enabled: true
+      integrity:
+        algorithm: SHA-256
+      mask:
+        enabled: true
     #   excluded-paths:
     #     - /actuator/health
     #     - /api/v1/audit/dashboard

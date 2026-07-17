@@ -13,7 +13,7 @@
 
     <groupId>com.github.houbb</groupId>
     <artifactId>core-audit</artifactId>
-    <version>0.6.0</version>
+    <version>0.8.0</version>
     <name>core-audit</name>
     <description>Enterprise Audit Runtime for Core Platform</description>
 
@@ -67,6 +67,13 @@
             <groupId>com.opencsv</groupId>
             <artifactId>opencsv</artifactId>
             <version>${opencsv.version}</version>
+        </dependency>
+
+        <!-- Apache POI (P7 Excel Export) -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.2.5</version>
         </dependency>
 
         <!-- Jackson (metadata JSON processing) -->

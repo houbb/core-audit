@@ -9,6 +9,9 @@ import com.github.houbb.core.audit.application.domain.enums.AuditModule;
 import com.github.houbb.core.audit.application.domain.enums.AuditResult;
 import com.github.houbb.core.audit.application.port.AuditEventRepository;
 import com.github.houbb.core.audit.application.port.ChangeRepository;
+import com.github.houbb.core.audit.application.port.ExportTaskRepository;
+import com.github.houbb.core.audit.application.port.LegalHoldRepository;
+import com.github.houbb.core.audit.application.port.RetentionPolicyRepository;
 import com.github.houbb.core.audit.application.query.AuditEventQuery;
 import com.github.houbb.core.audit.application.query.engine.AuditQueryEngine;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,13 +60,26 @@ class AuditEventServiceTest {
     @Mock
     private ReplayService replayService;
 
+    @Mock
+    private IntegrityService integrityService;
+
+    @Mock
+    private LegalHoldRepository legalHoldRepository;
+
+    @Mock
+    private RetentionPolicyRepository retentionPolicyRepository;
+
+    @Mock
+    private ExportTaskRepository exportTaskRepository;
+
     private AuditEventService service;
 
     @BeforeEach
     void setUp() {
         service = new AuditEventService(repository, publisher, contextResolver,
                 diffEngine, snapshotResolver, changeRepository, auditQueryEngine,
-                timelineService, replayService);
+                timelineService, replayService,
+                integrityService, legalHoldRepository, retentionPolicyRepository, exportTaskRepository);
     }
 
     @Test

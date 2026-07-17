@@ -1,5 +1,159 @@
 # CHANGELOG
 
+## [0.8.0] - 2026-07-17
+
+### Added — P7: Compliance Runtime
+
+P7 将 `core-audit` 从"技术审计平台"升级为**企业级合规平台（Enterprise Compliance Platform）**，让审计数据满足企业治理、法律法规、内控要求。
+
+> 核心目标：**让 Audit 从"可以查看"升级为"可以作为企业合规和法律证据使用"。**
+
+**架构升级：**
+
+```
+                 core-audit
+
+            Compliance Service
+                    │
+     +--------------+--------------+
+     │              │              │
+Retention      Integrity      Mask Engine
+     │              │              │
+     +--------------+--------------+
+                    │
+          Compliance Repository
+                    │
+             Audit Repository
+```
+
+**新增六大核心组件：**
+
+| 组件 | 位置 | 职责 |
+|------|------|------|
+| `RetentionPolicy` | `application/domain/compliance/` | 保留策略领域对象（Builder 模式） |
+| `AuditSignature` | `application/domain/compliance/` | SHA-256 哈希链签名 |
+| `LegalHold` | `application/domain/compliance/` | 法律保留（覆盖 Retention 策略） |
+| `ExportTask` | `application/domain/compliance/` | 异步导出任务（CSV / Excel） |
+| `ComplianceProvider` | `application/compliance/` | 合规策略 SPI 扩展点 |
+| `MaskStrategy` | `application/compliance/` | 脱敏策略 SPI 扩展点 |
+| `@AuditMask` | `application/compliance/` | 敏感字段脱敏注解（与 @AuditIgnore 同模式） |
+| `IntegrityService` | `application/service/` | SHA-256 哈希链签名 + 验证引擎 |
+| `MaskService` | `application/service/` | 展示层自动脱敏（@AuditMask + 字段名检测） |
+| `ExportService` | `application/service/` | @Async 异步导出（CSV + Excel） |
+| `ComplianceService` | `application/service/` | 合规中心调度器（聚合所有合规能力） |
+| `DefaultMaskStrategy` | `infrastructure/compliance/` | 内置 6 种敏感类型脱敏实现 |
+| `ComplianceScheduler` | `infrastructure/scheduler/` | `@Scheduled` 保留策略执行 Job（每日 02:00） |
+| `ComplianceController` | `api/controller/` | REST API（14 个端点） |
+
+**数据库变更：**
+- `audit_retention_policy` — 保留策略表（module + action → retention_days + archive）
+- `audit_signature` — 完整性签名表（audit_id UNIQUE, hash, previous_hash, algorithm）
+- `audit_legal_hold` — 法律保留表（audit_id, reason, owner, expired_at）
+- `audit_export_task` — 导出任务表（query_json, format, status, file_path）
+
+**新增枚举：**
+- `SensitiveType` — 6 种敏感数据类型（PHONE / EMAIL / TOKEN / PASSWORD / SECRET / API_KEY）
+- `ExportFormat` — 3 种导出格式（CSV / EXCEL / PDF）
+- `ExportStatus` — 4 种导出状态（PENDING / PROCESSING / COMPLETED / FAILED）
+
+**API 新增（14 个端点）：**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/audit/compliance/overview` | 合规概览 Dashboard 统计 |
+| GET | `/api/v1/audit/compliance/policies` | 列出所有保留策略 |
+| POST | `/api/v1/audit/compliance/policies` | 创建/更新保留策略 |
+| DELETE | `/api/v1/audit/compliance/policies/{id}` | 删除保留策略 |
+| GET | `/api/v1/audit/compliance/hash/{auditId}` | 获取签名 + 验证状态 |
+| POST | `/api/v1/audit/compliance/verify` | 验证哈希链完整性 |
+| GET | `/api/v1/audit/compliance/legal-holds` | 列出所有法律保留 |
+| POST | `/api/v1/audit/compliance/legal-hold` | 创建法律保留 |
+| DELETE | `/api/v1/audit/compliance/legal-hold/{id}` | 释放法律保留 |
+| POST | `/api/v1/audit/compliance/export` | 提交异步导出任务 |
+| GET | `/api/v1/audit/compliance/export/{taskId}` | 查询导出任务状态 |
+| GET | `/api/v1/audit/compliance/export/{taskId}/download` | 下载导出文件 |
+| GET | `/api/v1/audit/compliance/export/history` | 导出历史列表 |
+
+**Dashboard 扩展：**
+- `hashVerifyRate` — 哈希验证率（最近 100 条抽样）
+- `legalHoldCount` — 活跃法律保留数
+- `retentionPolicyCount` — 启用的保留策略数
+- `todayExportCount` — 今日导出任务数
+
+**Integrity Engine — SHA-256 哈希链设计：**
+
+```
+Audit1 → Hash1 (previous_hash = "GENESIS")
+Audit2 → Hash2 (previous_hash = Hash1)
+Audit3 → Hash3 (previous_hash = Hash2)
+```
+
+- 每条 Audit 入库时自动签名（`IntegrityService.sign()` 在 `record()` 流程中执行，故障隔离）
+- 哈希链任意一点断裂（修改/删除）→ `verifyChain()` 立即检测
+- 规范化输入：id + module + action + targetType + targetId + operatorId + result + description + createdAt + previousHash + metadata
+
+**Mask Engine — @AuditMask 注解设计：**
+
+```java
+@AuditMask(type = SensitiveType.PHONE)
+private String phone; // 13812345678 → 138****5678
+```
+
+- 脱敏发生在展示层（`AuditEventResponse.from()`），原始数据在 DB 中不变
+- 优先级：@AuditMask 注解 > MaskStrategy.detectByFieldName() > 不脱敏
+- 内置 6 种 SensitiveType 脱敏逻辑
+
+**核心设计决策：**
+1. **Sign at record time** — 签名在 Audit 入库后立即生成，不延迟
+2. **Hash Chain** — `previous_hash` 链接前一条 Audit 的 hash，形成不可断裂的链
+3. **Mask at presentation layer** — `AuditEventResponse.from()` 静态工厂中自动应用脱敏
+4. **Export async** — POST 立即返回 PENDING，`@Async` 后台执行，GET 轮询
+5. **Legal Hold > Retention** — 法律保留期间审计记录不可被 Retention Job 删除
+6. **ComplianceProvider SPI** — 与 TimelineStrategy / ReplayStrategy 同模式，按 `order()` 排序
+7. **Fault isolation** — 签名失败/脱敏失败只记日志，不阻塞审计记录主流程
+8. **ComplianceScheduler** — `@Scheduled(cron = "0 0 2 * * *")` 每日凌晨 2 点执行保留清理
+
+**P7 不做（留到后续 Phase）：**
+
+| 能力 | Phase | 原因 |
+|------|-------|------|
+| AI 自动合规检查 | P8 | AI 分析属于智能层 |
+| 多区域法规模板 | P9 | 企业全球部署 |
+| WORM 存储 | P9 | 与对象存储能力结合 |
+| 区块链存证 | P9 | 极少数行业需要，不作为 Core 默认 |
+| PDF 导出 | P7.1 | 本次只做 CSV + Excel |
+
+**P0～P7 能力演进：**
+
+```
+P0  Record Runtime    — 记录行为
+P1  Event Runtime     — 传播事件
+P2  Context Runtime   — 补全上下文
+P3  Diff Runtime      — 记录变更
+P4  Search Runtime    — 快速调查
+P5  Timeline Runtime  — 重建行为链路
+P6  Replay Runtime    — 重建操作过程
+P7  Compliance Runtime — 建立可信、可审计、可合规的企业级审计体系
+```
+
+到 **P7**，`core-audit` 已具备企业级审计平台最核心的三项能力：
+- **可信（Trustworthy）**：哈希链、保留策略、法律保留、脱敏
+- **可调查（Investigable）**：Search、Timeline、Replay
+- **可证明（Provable）**：导出、签名、完整性验证、合规报告
+
+**配置新增：**
+- `core.audit.compliance.enabled` — Compliance 总开关（默认 true）
+- `core.audit.compliance.integrity.algorithm` — 哈希算法（默认 SHA-256）
+- `core.audit.compliance.mask.enabled` — 脱敏开关（默认 true）
+
+**依赖新增：**
+- Apache POI 5.2.5（Excel 导出）
+
+**测试：**
+133 个 JUnit 5 用例全部通过，0 失败（含现有 133 个 + 新增 P7 编译兼容）。
+
+---
+
 ## [0.7.0] - 2026-07-17
 
 ### Added — P6: Replay Runtime

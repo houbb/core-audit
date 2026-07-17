@@ -73,7 +73,26 @@ public class AuditEventResponse {
         resp.publishResult = event.getPublishResult();
         // P2 context
         resp.context = event.getContext();
+
+        // P7: Apply sensitive data masking (fault-isolated)
+        applyMaskIfAvailable(resp);
+
         return resp;
+    }
+
+    /**
+     * P7: 应用脱敏（如果 MaskService 可用）
+     */
+    private static void applyMaskIfAvailable(AuditEventResponse resp) {
+        try {
+            com.github.houbb.core.audit.application.service.MaskService maskService =
+                    com.github.houbb.core.audit.application.service.MaskService.getInstance();
+            if (maskService != null) {
+                maskService.applyMask(resp);
+            }
+        } catch (Exception ignored) {
+            // Mask failure must never block API response
+        }
     }
 
     // ======== Getters ========

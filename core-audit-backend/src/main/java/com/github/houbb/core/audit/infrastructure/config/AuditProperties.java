@@ -25,6 +25,9 @@ public class AuditProperties {
     /** P6 Replay 配置 */
     private Replay replay = new Replay();
 
+    /** P7 Compliance 配置 */
+    private Compliance compliance = new Compliance();
+
     public Sdk getSdk() { return sdk; }
     public void setSdk(Sdk sdk) { this.sdk = sdk; }
 
@@ -36,6 +39,9 @@ public class AuditProperties {
 
     public Replay getReplay() { return replay; }
     public void setReplay(Replay replay) { this.replay = replay; }
+
+    public Compliance getCompliance() { return compliance; }
+    public void setCompliance(Compliance compliance) { this.compliance = compliance; }
 
     public static class Sdk {
         /** 是否启用 SDK */
@@ -77,5 +83,41 @@ public class AuditProperties {
 
         public boolean isEnabled() { return enabled; }
         public void setEnabled(boolean enabled) { this.enabled = enabled; }
+    }
+
+    public static class Compliance {
+        /** 是否启用合规模块 */
+        private boolean enabled = true;
+
+        /** 完整性配置 */
+        private Integrity integrity = new Integrity();
+
+        /** 脱敏配置 */
+        private Mask mask = new Mask();
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+
+        public Integrity getIntegrity() { return integrity; }
+        public void setIntegrity(Integrity integrity) { this.integrity = integrity; }
+
+        public Mask getMask() { return mask; }
+        public void setMask(Mask mask) { this.mask = mask; }
+
+        public static class Integrity {
+            /** 哈希算法 */
+            private String algorithm = "SHA-256";
+
+            public String getAlgorithm() { return algorithm; }
+            public void setAlgorithm(String algorithm) { this.algorithm = algorithm; }
+        }
+
+        public static class Mask {
+            /** 是否启用脱敏 */
+            private boolean enabled = true;
+
+            public boolean isEnabled() { return enabled; }
+            public void setEnabled(boolean enabled) { this.enabled = enabled; }
+        }
     }
 }

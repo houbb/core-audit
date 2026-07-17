@@ -54,6 +54,10 @@ public class AuditDashboardController {
                 .avgReplaySteps(stats.getAvgReplaySteps())
                 .maxReplaySteps(stats.getMaxReplaySteps())
                 .avgReplayDuration(stats.getAvgReplayDuration())
+                .hashVerifyRate(stats.getHashVerifyRate())
+                .legalHoldCount(stats.getLegalHoldCount())
+                .retentionPolicyCount(stats.getRetentionPolicyCount())
+                .todayExportCount(stats.getTodayExportCount())
                 .recentEvents(stats.getRecentEvents().stream()
                         .map(AuditEventResponse::from)
                         .toList());

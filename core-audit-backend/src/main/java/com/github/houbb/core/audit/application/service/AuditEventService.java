@@ -8,6 +8,9 @@ import com.github.houbb.core.audit.application.domain.diff.ChangeSet;
 import com.github.houbb.core.audit.application.domain.enums.AuditAction;
 import com.github.houbb.core.audit.application.port.AuditEventRepository;
 import com.github.houbb.core.audit.application.port.ChangeRepository;
+import com.github.houbb.core.audit.application.port.ExportTaskRepository;
+import com.github.houbb.core.audit.application.port.LegalHoldRepository;
+import com.github.houbb.core.audit.application.port.RetentionPolicyRepository;
 import com.github.houbb.core.audit.application.query.AuditEventQuery;
 import com.github.houbb.core.audit.application.domain.query.AuditQuery;
 import com.github.houbb.core.audit.application.domain.query.AuditQueryResult;
@@ -41,6 +44,11 @@ public class AuditEventService {
     private final AuditQueryEngine auditQueryEngine;
     private final TimelineService timelineService;
     private final ReplayService replayService;
+    // P7
+    private final IntegrityService integrityService;
+    private final LegalHoldRepository legalHoldRepository;
+    private final RetentionPolicyRepository retentionPolicyRepository;
+    private final ExportTaskRepository exportTaskRepository;
 
     public AuditEventService(AuditEventRepository repository, AuditEventPublisher publisher,
                              ContextResolver contextResolver,
@@ -48,7 +56,11 @@ public class AuditEventService {
                              ChangeRepository changeRepository,
                              AuditQueryEngine auditQueryEngine,
                              TimelineService timelineService,
-                             ReplayService replayService) {
+                             ReplayService replayService,
+                             IntegrityService integrityService,
+                             LegalHoldRepository legalHoldRepository,
+                             RetentionPolicyRepository retentionPolicyRepository,
+                             ExportTaskRepository exportTaskRepository) {
         this.repository = repository;
         this.publisher = publisher;
         this.contextResolver = contextResolver;
@@ -58,6 +70,10 @@ public class AuditEventService {
         this.auditQueryEngine = auditQueryEngine;
         this.timelineService = timelineService;
         this.replayService = replayService;
+        this.integrityService = integrityService;
+        this.legalHoldRepository = legalHoldRepository;
+        this.retentionPolicyRepository = retentionPolicyRepository;
+        this.exportTaskRepository = exportTaskRepository;
     }
 
     /**
@@ -100,6 +116,13 @@ public class AuditEventService {
         performDiff(event);
 
         AuditEvent saved = repository.save(event);
+
+        // P7: Integrity signature (fault-isolated — failure does NOT block audit recording)
+        try {
+            integrityService.sign(saved);
+        } catch (Exception e) {
+            log.warn("Integrity signing failed for audit {}: {}", saved.getId(), e.getMessage());
+        }
 
         // P5: Timeline append (sync incremental, multi-home)
         try {
@@ -187,6 +210,12 @@ public class AuditEventService {
         stats.setAvgReplaySteps(replayService.avgStepsToday());
         stats.setMaxReplaySteps(replayService.maxStepsToday());
         stats.setAvgReplayDuration(replayService.avgDurationToday());
+
+        // P7 compliance stats
+        stats.setHashVerifyRate(integrityService.calculateHashVerifyRate());
+        stats.setLegalHoldCount(legalHoldRepository.countActive());
+        stats.setRetentionPolicyCount(retentionPolicyRepository.countEnabled());
+        stats.setTodayExportCount(exportTaskRepository.countToday());
 
         // 最近 10 条操作
         AuditEventQuery recentQuery = new AuditEventQuery();
@@ -296,6 +325,12 @@ public class AuditEventService {
         private int maxReplaySteps;
         private double avgReplayDuration;
 
+        // P7 compliance stats
+        private double hashVerifyRate;
+        private long legalHoldCount;
+        private long retentionPolicyCount;
+        private long todayExportCount;
+
         public long getTodayTotal() { return todayTotal; }
         public void setTodayTotal(long todayTotal) { this.todayTotal = todayTotal; }
         public long getTodaySuccess() { return todaySuccess; }
@@ -338,5 +373,13 @@ public class AuditEventService {
         public void setMaxReplaySteps(int maxReplaySteps) { this.maxReplaySteps = maxReplaySteps; }
         public double getAvgReplayDuration() { return avgReplayDuration; }
         public void setAvgReplayDuration(double avgReplayDuration) { this.avgReplayDuration = avgReplayDuration; }
+        public double getHashVerifyRate() { return hashVerifyRate; }
+        public void setHashVerifyRate(double hashVerifyRate) { this.hashVerifyRate = hashVerifyRate; }
+        public long getLegalHoldCount() { return legalHoldCount; }
+        public void setLegalHoldCount(long legalHoldCount) { this.legalHoldCount = legalHoldCount; }
+        public long getRetentionPolicyCount() { return retentionPolicyCount; }
+        public void setRetentionPolicyCount(long retentionPolicyCount) { this.retentionPolicyCount = retentionPolicyCount; }
+        public long getTodayExportCount() { return todayExportCount; }
+        public void setTodayExportCount(long todayExportCount) { this.todayExportCount = todayExportCount; }
     }
 }

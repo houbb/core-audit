@@ -39,6 +39,12 @@ public class DashboardResponse {
     private int maxReplaySteps;
     private double avgReplayDuration;
 
+    // ======== P7 compliance stats ========
+    private double hashVerifyRate;
+    private long legalHoldCount;
+    private long retentionPolicyCount;
+    private long todayExportCount;
+
     // ======== Getters ========
 
     public long getTodayTotal() { return todayTotal; }
@@ -88,4 +94,12 @@ public class DashboardResponse {
     public DashboardResponse avgReplaySteps(double v) { this.avgReplaySteps = v; return this; }
     public DashboardResponse maxReplaySteps(int v) { this.maxReplaySteps = v; return this; }
     public DashboardResponse avgReplayDuration(double v) { this.avgReplayDuration = v; return this; }
+    public double getHashVerifyRate() { return hashVerifyRate; }
+    public DashboardResponse hashVerifyRate(double v) { this.hashVerifyRate = v; return this; }
+    public long getLegalHoldCount() { return legalHoldCount; }
+    public DashboardResponse legalHoldCount(long v) { this.legalHoldCount = v; return this; }
+    public long getRetentionPolicyCount() { return retentionPolicyCount; }
+    public DashboardResponse retentionPolicyCount(long v) { this.retentionPolicyCount = v; return this; }
+    public long getTodayExportCount() { return todayExportCount; }
+    public DashboardResponse todayExportCount(long v) { this.todayExportCount = v; return this; }
 }
