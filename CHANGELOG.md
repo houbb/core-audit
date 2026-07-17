@@ -1,5 +1,73 @@
 # CHANGELOG
 
+## [0.5.0] - 2026-07-17
+
+### Added — P4: Search Runtime
+
+P4 将 `core-audit` 从一个"审计数据存储"升级为**统一审计检索引擎（Audit Query Engine）**，让几百万条审计记录能在几秒内被精准定位。
+
+> 核心目标：**让 Audit 数据真正可查询、可分析、可调查。**
+
+**架构升级：**
+
+```
+AuditQuery DSL → Query Planner → AuditQueryEngine → SQL (SQLite/MySQL/Elastic)
+                    │
+            AuditQueryProvider SPI (5 built-in)
+```
+
+**新增核心组件：**
+
+| 组件 | 位置 | 职责 |
+|------|------|------|
+| `AuditQuery` | `application/domain/query/` | 统一查询 DSL（Builder 模式，30+ 过滤字段） |
+| `AuditQueryResult` | `application/domain/query/` | 查询结果包装（分页 + Diff 变更数据） |
+| `AuditQueryProvider` | `application/query/spi/` | 可插拔查询条件提供者（SPI 扩展点） |
+| `QueryPlan` | `application/query/engine/` | 查询计划（SQL + 参数） |
+| `QueryPlanner` | `application/query/engine/` | 查询计划生成器接口 |
+| `DefaultQueryPlanner` | `application/query/engine/` | 默认实现（遍历 Provider + Diff JOIN + 排序 + 分页） |
+| `AuditQueryEngine` | `application/query/engine/` | 核心引擎入口（JdbcTemplate 执行查询计划） |
+| `SortEngine` | `application/query/engine/` | 排序验证与构建（白名单字段，非法回退） |
+| `QueryHistoryService` | `application/query/service/` | 搜索历史 + 保存查询管理 |
+
+**5 个内置 AuditQueryProvider（五大搜索范围）：**
+
+| Provider | Order | 覆盖范围 |
+|----------|-------|----------|
+| `BasicQueryProvider` | 100 | module / action / result / eventType / targetType / targetId |
+| `ContextQueryProvider` | 200 | operator / tenant / department / role / ip / uri / browser / os / device / traceId |
+| `DiffQueryProvider` | 300 | diffField / diffBefore / diffAfter / diffType → JOIN audit_change |
+| `KeywordQueryProvider` | 400 | keyword → LIKE on description + targetId + operatorName |
+| `MetadataQueryProvider` | 500 | metadataKey / metadataValue → json_extract on metadata JSON |
+
+**Diff 深度集成：**
+- AuditQuery 设置 `diffField` / `diffBefore` / `diffAfter` / `diffType` 时，QueryPlanner 自动生成 `INNER JOIN audit_change` + `SELECT DISTINCT`
+- AuditQueryResult 携带 `Map<String, List<Change>>` 返回关联的变更数据
+
+**API 新增（6 个端点）：**
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `POST` | `/api/v1/audit/query` | 统一审计查询（AuditQuery DSL JSON body） |
+| `POST` | `/api/v1/audit/query/save` | 保存查询（name + query + isPublic） |
+| `DELETE` | `/api/v1/audit/query/save/{id}` | 删除已保存查询 |
+| `GET` | `/api/v1/audit/query/saved?userId=` | 获取用户已保存查询列表（含团队共享） |
+| `GET` | `/api/v1/audit/query/recent?userId=` | 获取用户最近搜索历史（最多 20 条） |
+| `GET` | `/api/v1/audit/query/popular?limit=` | 获取热门查询（Dashboard 使用） |
+
+**数据库：**
+- V5 Flyway 迁移：新增 `audit_saved_query` 表和 `audit_search_history` 表
+- 新增复合索引：`idx_ae_module_action_time` (module, action, created_at DESC)、`idx_ae_operator_time` (operator_name, created_at DESC)
+
+**向后兼容：**
+- 现有 `GET /api/v1/audit/events` 保持不变，新旧端点并行运行
+- `AuditEventService` 新增 `queryViaEngine()` 方法，不影响现有 `query()` 方法
+
+**测试：**
+86 个 JUnit 5 用例全部通过（含 21 个新增 P4 测试 + 65 个已有测试兼容）。
+
+---
+
 ## [0.4.0] - 2026-07-17
 
 ### Added — P3: Diff Runtime

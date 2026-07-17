@@ -9,6 +9,9 @@ import com.github.houbb.core.audit.application.domain.enums.AuditAction;
 import com.github.houbb.core.audit.application.port.AuditEventRepository;
 import com.github.houbb.core.audit.application.port.ChangeRepository;
 import com.github.houbb.core.audit.application.query.AuditEventQuery;
+import com.github.houbb.core.audit.application.domain.query.AuditQuery;
+import com.github.houbb.core.audit.application.domain.query.AuditQueryResult;
+import com.github.houbb.core.audit.application.query.engine.AuditQueryEngine;
 import com.github.houbb.core.audit.infrastructure.csv.CsvExportUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,17 +38,20 @@ public class AuditEventService {
     private final DiffEngine diffEngine;
     private final SnapshotResolver snapshotResolver;
     private final ChangeRepository changeRepository;
+    private final AuditQueryEngine auditQueryEngine;
 
     public AuditEventService(AuditEventRepository repository, AuditEventPublisher publisher,
                              ContextResolver contextResolver,
                              DiffEngine diffEngine, SnapshotResolver snapshotResolver,
-                             ChangeRepository changeRepository) {
+                             ChangeRepository changeRepository,
+                             AuditQueryEngine auditQueryEngine) {
         this.repository = repository;
         this.publisher = publisher;
         this.contextResolver = contextResolver;
         this.diffEngine = diffEngine;
         this.snapshotResolver = snapshotResolver;
         this.changeRepository = changeRepository;
+        this.auditQueryEngine = auditQueryEngine;
     }
 
     /**
@@ -107,6 +113,17 @@ public class AuditEventService {
      */
     public AuditEventPage query(AuditEventQuery query) {
         return repository.findAll(query);
+    }
+
+    /**
+     * 通过 AuditQuery DSL 查询（P4 新增）
+     * <p>使用 Query Engine 执行统一查询，支持 Diff 深度集成。</p>
+     *
+     * @param query 统一查询 DSL
+     * @return 查询结果（含 Diff 变更数据）
+     */
+    public AuditQueryResult queryViaEngine(AuditQuery query) {
+        return auditQueryEngine.execute(query);
     }
 
     /**

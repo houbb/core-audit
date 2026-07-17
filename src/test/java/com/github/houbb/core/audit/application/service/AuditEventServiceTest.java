@@ -10,6 +10,7 @@ import com.github.houbb.core.audit.application.domain.enums.AuditResult;
 import com.github.houbb.core.audit.application.port.AuditEventRepository;
 import com.github.houbb.core.audit.application.port.ChangeRepository;
 import com.github.houbb.core.audit.application.query.AuditEventQuery;
+import com.github.houbb.core.audit.application.query.engine.AuditQueryEngine;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,12 +48,15 @@ class AuditEventServiceTest {
     @Mock
     private ChangeRepository changeRepository;
 
+    @Mock
+    private AuditQueryEngine auditQueryEngine;
+
     private AuditEventService service;
 
     @BeforeEach
     void setUp() {
         service = new AuditEventService(repository, publisher, contextResolver,
-                diffEngine, snapshotResolver, changeRepository);
+                diffEngine, snapshotResolver, changeRepository, auditQueryEngine);
     }
 
     @Test
