@@ -60,3 +60,9 @@ core:
   audit:
     sdk:
       enabled: false
+    # P2 Context configuration
+    context:
+      enabled: true
+    #   excluded-paths:
+    #     - /actuator/health
+    #     - /api/v1/audit/dashboard

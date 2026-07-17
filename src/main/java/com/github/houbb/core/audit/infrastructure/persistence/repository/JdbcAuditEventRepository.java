@@ -11,6 +11,9 @@ import com.github.houbb.core.audit.infrastructure.persistence.jdbc.AuditEventRow
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -25,9 +28,39 @@ public class JdbcAuditEventRepository implements AuditEventRepository {
 
     private final JdbcTemplate jdbcTemplate;
     private final AuditEventRowMapper rowMapper = new AuditEventRowMapper();
+    private final boolean sqlite;
 
     public JdbcAuditEventRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
+        this.sqlite = isSqlite();
+    }
+
+    /**
+     * Detect whether the datasource is SQLite by checking the JDBC URL.
+     */
+    private boolean isSqlite() {
+        try {
+            DataSource ds = jdbcTemplate.getDataSource();
+            if (ds != null) {
+                try (Connection conn = ds.getConnection()) {
+                    String url = conn.getMetaData().getURL();
+                    return url != null && url.contains("sqlite");
+                }
+            }
+        } catch (SQLException e) {
+            // Fallback: assume not SQLite
+        }
+        return false;
+    }
+
+    /**
+     * Return the correct JSON extract function for the detected database dialect.
+     */
+    private String jsonExtract(String column, String jsonPath) {
+        if (sqlite) {
+            return "json_extract(" + column + ", '" + jsonPath + "')";
+        }
+        return "JSON_EXTRACT(" + column + ", '" + jsonPath + "')";
     }
 
     @Override
@@ -50,8 +83,9 @@ public class JdbcAuditEventRepository implements AuditEventRepository {
                 "result, description, client_ip, request_uri, request_method, trace_id, " +
                 "metadata, created_at, " +
                 "event_id, event_type, source, version, occurred_at, published, publish_time, publish_result, " +
+                "context_json, " +
                 "create_time, update_time, create_user, update_user" +
-                ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 entity.getId(),
                 entity.getModule(),
                 entity.getAction(),
@@ -75,6 +109,7 @@ public class JdbcAuditEventRepository implements AuditEventRepository {
                 entity.getPublished() != null ? entity.getPublished() : 1,
                 entity.getPublishTime(),
                 entity.getPublishResult(),
+                entity.getContextJson(),
                 entity.getCreateTime(),
                 entity.getUpdateTime(),
                 entity.getCreateUser(),
@@ -231,5 +266,83 @@ public class JdbcAuditEventRepository implements AuditEventRepository {
             sql.append(" AND created_at <= ?");
             params.add(query.getEndTime().toString());
         }
+        // ======== P2 context filters ========
+        if (query.getTraceId() != null && !query.getTraceId().isBlank()) {
+            // traceId is stored both in the trace_id column and context_json -> use column for performance
+            sql.append(" AND trace_id = ?");
+            params.add(query.getTraceId());
+        }
+        if (query.getTenant() != null && !query.getTenant().isBlank()) {
+            sql.append(" AND ").append(jsonExtract("context_json", "$.operator.tenant")).append(" = ?");
+            params.add(query.getTenant());
+        }
+        if (query.getDepartment() != null && !query.getDepartment().isBlank()) {
+            sql.append(" AND ").append(jsonExtract("context_json", "$.operator.department")).append(" = ?");
+            params.add(query.getDepartment());
+        }
+        if (query.getBrowser() != null && !query.getBrowser().isBlank()) {
+            sql.append(" AND ").append(jsonExtract("context_json", "$.client.browser")).append(" = ?");
+            params.add(query.getBrowser());
+        }
+        if (query.getIp() != null && !query.getIp().isBlank()) {
+            sql.append(" AND ").append(jsonExtract("context_json", "$.client.ip")).append(" = ?");
+            params.add(query.getIp());
+        }
+        if (query.getWorkspace() != null && !query.getWorkspace().isBlank()) {
+            sql.append(" AND ").append(jsonExtract("context_json", "$.business.workspace")).append(" = ?");
+            params.add(query.getWorkspace());
+        }
+        if (query.getProject() != null && !query.getProject().isBlank()) {
+            sql.append(" AND ").append(jsonExtract("context_json", "$.business.project")).append(" = ?");
+            params.add(query.getProject());
+        }
+    }
+
+    // ======== P2 dashboard context queries ========
+
+    @Override
+    public Map<String, Long> browserDistributionToday() {
+        String today = LocalDate.now().toString();
+        String sql = "SELECT " + jsonExtract("context_json", "$.client.browser") + " as browser, COUNT(*) as cnt " +
+                "FROM audit_event WHERE created_at >= ? AND context_json IS NOT NULL " +
+                "GROUP BY browser ORDER BY cnt DESC";
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, today);
+        Map<String, Long> result = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            Object key = row.get("browser");
+            Object val = row.get("cnt");
+            if (key != null) {
+                result.put(key.toString(), val instanceof Number ? ((Number) val).longValue() : 0L);
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public List<Map<String, Object>> topOperatorsToday(int limit) {
+        String today = LocalDate.now().toString();
+        String sql = "SELECT " + jsonExtract("context_json", "$.operator.username") + " as username, " +
+                jsonExtract("context_json", "$.operator.organization") + " as organization, COUNT(*) as cnt " +
+                "FROM audit_event WHERE created_at >= ? AND context_json IS NOT NULL " +
+                "GROUP BY username, organization ORDER BY cnt DESC LIMIT ?";
+        return jdbcTemplate.queryForList(sql, today, limit);
+    }
+
+    @Override
+    public List<Map<String, Object>> topModulesToday(int limit) {
+        String today = LocalDate.now().toString();
+        String sql = "SELECT module, COUNT(*) as cnt " +
+                "FROM audit_event WHERE created_at >= ? " +
+                "GROUP BY module ORDER BY cnt DESC LIMIT ?";
+        return jdbcTemplate.queryForList(sql, today, limit);
+    }
+
+    @Override
+    public List<Map<String, Object>> topOrganizationsToday(int limit) {
+        String today = LocalDate.now().toString();
+        String sql = "SELECT " + jsonExtract("context_json", "$.operator.organization") + " as organization, COUNT(*) as cnt " +
+                "FROM audit_event WHERE created_at >= ? AND context_json IS NOT NULL " +
+                "GROUP BY organization ORDER BY cnt DESC LIMIT ?";
+        return jdbcTemplate.queryForList(sql, today, limit);
     }
 }

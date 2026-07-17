@@ -4,6 +4,8 @@ import com.github.houbb.core.audit.application.domain.AuditEvent;
 import com.github.houbb.core.audit.application.domain.AuditEventPage;
 import com.github.houbb.core.audit.application.query.AuditEventQuery;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -85,4 +87,37 @@ public interface AuditEventRepository {
      * @return 今日发布失败数
      */
     long countTodayPublishFailed();
+
+    // ======== P2 context dashboard queries ========
+
+    /**
+     * 今日浏览器分布统计
+     *
+     * @return 浏览器 → 次数（如 {"Chrome": 68, "Edge": 22}）
+     */
+    Map<String, Long> browserDistributionToday();
+
+    /**
+     * 今日操作最多的操作人
+     *
+     * @param limit 返回条数
+     * @return 操作人排名列表
+     */
+    List<Map<String, Object>> topOperatorsToday(int limit);
+
+    /**
+     * 今日最活跃的模块
+     *
+     * @param limit 返回条数
+     * @return 模块排名列表
+     */
+    List<Map<String, Object>> topModulesToday(int limit);
+
+    /**
+     * 今日操作最多的组织
+     *
+     * @param limit 返回条数
+     * @return 组织排名列表
+     */
+    List<Map<String, Object>> topOrganizationsToday(int limit);
 }

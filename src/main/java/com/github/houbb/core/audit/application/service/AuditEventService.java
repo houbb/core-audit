@@ -1,5 +1,6 @@
 package com.github.houbb.core.audit.application.service;
 
+import com.github.houbb.core.audit.application.context.ContextResolver;
 import com.github.houbb.core.audit.application.domain.AuditEvent;
 import com.github.houbb.core.audit.application.domain.AuditEventPage;
 import com.github.houbb.core.audit.application.port.AuditEventRepository;
@@ -12,6 +13,8 @@ import org.springframework.stereotype.Service;
 import java.io.OutputStream;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 审计事件核心业务服务
@@ -24,10 +27,13 @@ public class AuditEventService {
 
     private final AuditEventRepository repository;
     private final AuditEventPublisher publisher;
+    private final ContextResolver contextResolver;
 
-    public AuditEventService(AuditEventRepository repository, AuditEventPublisher publisher) {
+    public AuditEventService(AuditEventRepository repository, AuditEventPublisher publisher,
+                             ContextResolver contextResolver) {
         this.repository = repository;
         this.publisher = publisher;
+        this.contextResolver = contextResolver;
     }
 
     /**
@@ -62,6 +68,9 @@ public class AuditEventService {
                 event.getModule(), event.getAction(), event.getEventType(),
                 event.getTargetType(), event.getTargetId(),
                 event.getResult());
+
+        // P2: auto-resolve context before save
+        contextResolver.resolve(event);
 
         AuditEvent saved = repository.save(event);
 
@@ -111,6 +120,12 @@ public class AuditEventService {
         stats.setTodayPublished(repository.countTodayPublished());
         stats.setTodayPublishFailed(repository.countTodayPublishFailed());
 
+        // P2 context stats
+        stats.setBrowserDistribution(repository.browserDistributionToday());
+        stats.setTopOperators(repository.topOperatorsToday(5));
+        stats.setTopModules(repository.topModulesToday(5));
+        stats.setTopOrganizations(repository.topOrganizationsToday(5));
+
         // 最近 10 条操作
         AuditEventQuery recentQuery = new AuditEventQuery();
         recentQuery.setPage(1);
@@ -131,6 +146,10 @@ public class AuditEventService {
         private int activeModules;
         private long todayPublished;
         private long todayPublishFailed;
+        private Map<String, Long> browserDistribution = Collections.emptyMap();
+        private List<Map<String, Object>> topOperators = Collections.emptyList();
+        private List<Map<String, Object>> topModules = Collections.emptyList();
+        private List<Map<String, Object>> topOrganizations = Collections.emptyList();
         private List<AuditEvent> recentEvents = Collections.emptyList();
 
         public long getTodayTotal() { return todayTotal; }
@@ -145,6 +164,14 @@ public class AuditEventService {
         public void setTodayPublished(long todayPublished) { this.todayPublished = todayPublished; }
         public long getTodayPublishFailed() { return todayPublishFailed; }
         public void setTodayPublishFailed(long todayPublishFailed) { this.todayPublishFailed = todayPublishFailed; }
+        public Map<String, Long> getBrowserDistribution() { return browserDistribution; }
+        public void setBrowserDistribution(Map<String, Long> browserDistribution) { this.browserDistribution = browserDistribution; }
+        public List<Map<String, Object>> getTopOperators() { return topOperators; }
+        public void setTopOperators(List<Map<String, Object>> topOperators) { this.topOperators = topOperators; }
+        public List<Map<String, Object>> getTopModules() { return topModules; }
+        public void setTopModules(List<Map<String, Object>> topModules) { this.topModules = topModules; }
+        public List<Map<String, Object>> getTopOrganizations() { return topOrganizations; }
+        public void setTopOrganizations(List<Map<String, Object>> topOrganizations) { this.topOrganizations = topOrganizations; }
         public List<AuditEvent> getRecentEvents() { return recentEvents; }
         public void setRecentEvents(List<AuditEvent> recentEvents) { this.recentEvents = recentEvents; }
     }

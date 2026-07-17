@@ -1,5 +1,72 @@
 # CHANGELOG
 
+## [0.3.0] - 2026-07-17
+
+### Added — P2: Context Runtime
+
+P2 建立了整个 Core Platform 的**统一上下文模型（Unified Context Model）**，让每条审计事件自动携带完整的业务上下文，无需调用方手动填写。
+
+> 核心原则：**自动采集优先** — 能从 Request/Security/System 获取的信息，绝不让业务重复填写。
+
+**AuditContext 五大上下文：**
+
+| 上下文 | 字段 | 来源 |
+|--------|------|------|
+| `OperatorContext` | userId, username, organization, role, tenant 等 | SecurityContextProvider（反射访问 Spring Security） |
+| `RequestContext` | requestUri, method, traceId, referer, userAgent 等 | RequestContextProvider（RequestContextHolder） |
+| `ClientContext` | ip, browser, os, device, language, timezone | ClientContextProvider（简单正则 UA 解析） |
+| `BusinessContext` | workspace, project, environment 等 | BusinessContextProvider + metadata 桥接 |
+| `SystemContext` | service, version, hostname, thread 等 | SystemContextProvider（Spring Environment） |
+
+**Provider SPI 扩展机制：**
+
+- `AuditContextProvider` 接口（`order()` + `contribute()`），遵循与 `AuditEventSubscriber` 相同的 SPI 模式
+- 5 个内置 Provider，按 order 排序执行（100→500）
+- `ContextResolver` 编排器：集合注入所有 Provider，故障隔离（单 Provider 失败不阻塞其他）
+- 其他 Core 模块可注册自定义 Provider 扩展上下文，无需修改 core-audit
+
+**数据流升级：**
+
+```
+SDK.record(event)
+  → setDefaults → ContextResolver.resolve(event) → save → publish
+```
+
+**数据库：**
+
+- V3 Flyway 迁移：`ALTER TABLE audit_event ADD COLUMN context_json TEXT`
+- 自动检测 SQLite/MySQL 方言，使用 `json_extract` / `JSON_EXTRACT`
+- 高频过滤字段（module/action/result/time）保持独立列，完整上下文存 JSON
+
+**API 增强：**
+
+- `GET /api/v1/audit/events` — 新增 7 个 Context 过滤参数（tenant, department, browser, ip, workspace, project, traceId）
+- `GET /api/v1/audit/events/{id}` — 响应体新增 `context` 字段（五大子上下文完整 JSON）
+- `GET /api/v1/audit/events/export` — 支持 Context 参数过滤导出
+- `GET /api/v1/audit/dashboard` — 新增 browserDistribution, topOperators, topModules, topOrganizations 统计
+- `AuditContextFilter` — 最高优先级 Servlet Filter，MDC traceId 注入
+
+**配置：**
+
+- `core.audit.context.enabled` — 上下文自动采集开关（默认 true）
+- `core.audit.context.excluded-paths` — 跳过采集的路径列表
+
+**P2 不做（留到后续 Phase）：**
+
+- Before/After Diff → P3
+- Timeline → P5
+- Replay → P6
+- Geo IP 地图分析 → P8
+- AI 异常识别 → P8
+- 敏感字段脱敏 → P7
+- 多节点 Context 聚合 → P9
+
+**测试：**
+
+23 个 JUnit 5 用例全部通过（含 ContextResolver mock 验证 + Repository 层 context_json 兼容测试）。
+
+---
+
 ## [0.2.0] - 2026-07-17
 
 ### Added — P1: Audit Event Runtime

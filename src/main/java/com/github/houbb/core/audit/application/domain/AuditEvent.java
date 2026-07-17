@@ -1,5 +1,6 @@
 package com.github.houbb.core.audit.application.domain;
 
+import com.github.houbb.core.audit.application.domain.context.AuditContext;
 import com.github.houbb.core.audit.application.domain.enums.AuditAction;
 import com.github.houbb.core.audit.application.domain.enums.AuditEventType;
 import com.github.houbb.core.audit.application.domain.enums.AuditModule;
@@ -83,6 +84,9 @@ public class AuditEvent {
     /** JSON 扩展信息 */
     private Map<String, Object> metadata;
 
+    /** P2 统一上下文（Operator + Request + Client + Business + System） */
+    private AuditContext context;
+
     // ======== Constructors ========
 
     public AuditEvent() {
@@ -112,6 +116,7 @@ public class AuditEvent {
         this.traceId = builder.traceId;
         this.createdAt = builder.createdAt;
         this.metadata = builder.metadata;
+        this.context = builder.context;
     }
 
     // ======== Builder ========
@@ -144,6 +149,7 @@ public class AuditEvent {
         private String traceId;
         private LocalDateTime createdAt;
         private Map<String, Object> metadata;
+        private AuditContext context;
 
         public Builder id(String id) { this.id = id; return this; }
         public Builder module(AuditModule module) { this.module = module; return this; }
@@ -168,6 +174,7 @@ public class AuditEvent {
         public Builder traceId(String traceId) { this.traceId = traceId; return this; }
         public Builder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
         public Builder metadata(Map<String, Object> metadata) { this.metadata = metadata; return this; }
+        public Builder context(AuditContext context) { this.context = context; return this; }
 
         public AuditEvent build() {
             return new AuditEvent(this);
@@ -199,6 +206,7 @@ public class AuditEvent {
     public String getTraceId() { return traceId; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public Map<String, Object> getMetadata() { return metadata; }
+    public AuditContext getContext() { return context; }
 
     // ======== Setters ========
 
@@ -225,4 +233,5 @@ public class AuditEvent {
     public void setTraceId(String traceId) { this.traceId = traceId; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public void setMetadata(Map<String, Object> metadata) { this.metadata = metadata; }
+    public void setContext(AuditContext context) { this.context = context; }
 }

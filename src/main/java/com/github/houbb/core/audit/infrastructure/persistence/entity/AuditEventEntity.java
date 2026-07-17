@@ -37,6 +37,9 @@ public class AuditEventEntity {
     private String createUser;
     private String updateUser;
 
+    // ======== P2 context field ========
+    private String contextJson;         // JSON representation of AuditContext
+
     // ======== Getters & Setters ========
 
     public String getId() { return id; }
@@ -96,4 +99,8 @@ public class AuditEventEntity {
     public void setCreateUser(String createUser) { this.createUser = createUser; }
     public String getUpdateUser() { return updateUser; }
     public void setUpdateUser(String updateUser) { this.updateUser = updateUser; }
+
+    // ======== P2 getters & setters ========
+    public String getContextJson() { return contextJson; }
+    public void setContextJson(String contextJson) { this.contextJson = contextJson; }
 }

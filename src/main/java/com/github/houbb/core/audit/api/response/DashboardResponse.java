@@ -1,6 +1,7 @@
 package com.github.houbb.core.audit.api.response;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Dashboard 统计响应
@@ -16,6 +17,12 @@ public class DashboardResponse {
     private int subscriberCount;
     private List<AuditEventResponse> recentEvents;
 
+    // ======== P2 context stats ========
+    private Map<String, Long> browserDistribution;
+    private List<Map<String, Object>> topOperators;
+    private List<Map<String, Object>> topModules;
+    private List<Map<String, Object>> topOrganizations;
+
     // ======== Getters ========
 
     public long getTodayTotal() { return todayTotal; }
@@ -26,6 +33,10 @@ public class DashboardResponse {
     public long getTodayPublishFailed() { return todayPublishFailed; }
     public int getSubscriberCount() { return subscriberCount; }
     public List<AuditEventResponse> getRecentEvents() { return recentEvents; }
+    public Map<String, Long> getBrowserDistribution() { return browserDistribution; }
+    public List<Map<String, Object>> getTopOperators() { return topOperators; }
+    public List<Map<String, Object>> getTopModules() { return topModules; }
+    public List<Map<String, Object>> getTopOrganizations() { return topOrganizations; }
 
     // ======== Builder-style setters ========
 
@@ -37,4 +48,8 @@ public class DashboardResponse {
     public DashboardResponse todayPublishFailed(long v) { this.todayPublishFailed = v; return this; }
     public DashboardResponse subscriberCount(int v) { this.subscriberCount = v; return this; }
     public DashboardResponse recentEvents(List<AuditEventResponse> v) { this.recentEvents = v; return this; }
+    public DashboardResponse browserDistribution(Map<String, Long> v) { this.browserDistribution = v; return this; }
+    public DashboardResponse topOperators(List<Map<String, Object>> v) { this.topOperators = v; return this; }
+    public DashboardResponse topModules(List<Map<String, Object>> v) { this.topModules = v; return this; }
+    public DashboardResponse topOrganizations(List<Map<String, Object>> v) { this.topOrganizations = v; return this; }
 }

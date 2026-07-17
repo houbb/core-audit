@@ -40,6 +40,10 @@ public class AuditDashboardController {
                 .todayPublished(stats.getTodayPublished())
                 .todayPublishFailed(stats.getTodayPublishFailed())
                 .subscriberCount(eventBus.getSubscribers().size())
+                .browserDistribution(stats.getBrowserDistribution())
+                .topOperators(stats.getTopOperators())
+                .topModules(stats.getTopModules())
+                .topOrganizations(stats.getTopOrganizations())
                 .recentEvents(stats.getRecentEvents().stream()
                         .map(AuditEventResponse::from)
                         .toList());

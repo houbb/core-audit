@@ -62,6 +62,7 @@ class JdbcAuditEventRepositoryTest {
                     published        INTEGER DEFAULT 1,
                     publish_time     VARCHAR(30),
                     publish_result   VARCHAR(20),
+                    context_json     TEXT,
                     create_time     VARCHAR(30),
                     update_time     VARCHAR(30),
                     create_user     VARCHAR(100),

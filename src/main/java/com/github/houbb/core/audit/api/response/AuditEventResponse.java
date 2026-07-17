@@ -1,6 +1,7 @@
 package com.github.houbb.core.audit.api.response;
 
 import com.github.houbb.core.audit.application.domain.AuditEvent;
+import com.github.houbb.core.audit.application.domain.context.AuditContext;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -37,6 +38,9 @@ public class AuditEventResponse {
     private LocalDateTime publishTime;
     private String publishResult;
 
+    // ======== P2 context ========
+    private AuditContext context;
+
     /**
      * 从领域对象构造
      */
@@ -67,6 +71,8 @@ public class AuditEventResponse {
         resp.published = event.isPublish();
         resp.publishTime = event.getPublishTime();
         resp.publishResult = event.getPublishResult();
+        // P2 context
+        resp.context = event.getContext();
         return resp;
     }
 
@@ -98,4 +104,7 @@ public class AuditEventResponse {
     public Boolean getPublished() { return published; }
     public LocalDateTime getPublishTime() { return publishTime; }
     public String getPublishResult() { return publishResult; }
+
+    // ======== P2 Getter ========
+    public AuditContext getContext() { return context; }
 }

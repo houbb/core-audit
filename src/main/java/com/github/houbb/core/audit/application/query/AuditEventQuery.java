@@ -42,6 +42,29 @@ public class AuditEventQuery {
     /** 结束时间 */
     private LocalDateTime endTime;
 
+    /** Trace ID 过滤（P2 — 复用已有的 trace_id 列） */
+    private String traceId;
+
+    // ======== P2 context filter fields ========
+
+    /** 租户过滤 */
+    private String tenant;
+
+    /** 部门过滤 */
+    private String department;
+
+    /** 浏览器过滤 */
+    private String browser;
+
+    /** IP 过滤 */
+    private String ip;
+
+    /** 工作空间过滤 */
+    private String workspace;
+
+    /** 项目过滤 */
+    private String project;
+
     // ======== Getters & Setters ========
 
     public int getPage() { return page; }
@@ -64,4 +87,22 @@ public class AuditEventQuery {
     public void setStartTime(LocalDateTime startTime) { this.startTime = startTime; }
     public LocalDateTime getEndTime() { return endTime; }
     public void setEndTime(LocalDateTime endTime) { this.endTime = endTime; }
+
+    public String getTraceId() { return traceId; }
+    public void setTraceId(String traceId) { this.traceId = traceId; }
+
+    // ======== P2 getters & setters ========
+
+    public String getTenant() { return tenant; }
+    public void setTenant(String tenant) { this.tenant = tenant; }
+    public String getDepartment() { return department; }
+    public void setDepartment(String department) { this.department = department; }
+    public String getBrowser() { return browser; }
+    public void setBrowser(String browser) { this.browser = browser; }
+    public String getIp() { return ip; }
+    public void setIp(String ip) { this.ip = ip; }
+    public String getWorkspace() { return workspace; }
+    public void setWorkspace(String workspace) { this.workspace = workspace; }
+    public String getProject() { return project; }
+    public void setProject(String project) { this.project = project; }
 }

@@ -43,6 +43,8 @@ public class AuditEventRowMapper implements RowMapper<AuditEventEntity> {
         entity.setUpdateTime(rs.getString("update_time"));
         entity.setCreateUser(rs.getString("create_user"));
         entity.setUpdateUser(rs.getString("update_user"));
+        // P2 context
+        entity.setContextJson(rs.getString("context_json"));
         return entity;
     }
 }

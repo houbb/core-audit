@@ -90,7 +90,15 @@ public class AuditEventController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String eventType,
             @RequestParam(required = false) String startTime,
-            @RequestParam(required = false) String endTime) {
+            @RequestParam(required = false) String endTime,
+            @RequestParam(required = false) String traceId,
+            // ======== P2 context filter params ========
+            @RequestParam(required = false) String tenant,
+            @RequestParam(required = false) String department,
+            @RequestParam(required = false) String browser,
+            @RequestParam(required = false) String ip,
+            @RequestParam(required = false) String workspace,
+            @RequestParam(required = false) String project) {
 
         AuditEventQuery query = new AuditEventQuery();
         query.setPage(page);
@@ -103,6 +111,13 @@ public class AuditEventController {
         if (eventType != null && !eventType.isBlank()) query.setEventType(AuditEventType.valueOf(eventType));
         if (startTime != null && !startTime.isBlank()) query.setStartTime(LocalDateTime.parse(startTime));
         if (endTime != null && !endTime.isBlank()) query.setEndTime(LocalDateTime.parse(endTime));
+        if (traceId != null && !traceId.isBlank()) query.setTraceId(traceId);
+        if (tenant != null && !tenant.isBlank()) query.setTenant(tenant);
+        if (department != null && !department.isBlank()) query.setDepartment(department);
+        if (browser != null && !browser.isBlank()) query.setBrowser(browser);
+        if (ip != null && !ip.isBlank()) query.setIp(ip);
+        if (workspace != null && !workspace.isBlank()) query.setWorkspace(workspace);
+        if (project != null && !project.isBlank()) query.setProject(project);
 
         AuditEventPage pageResult = auditEventService.query(query);
 
@@ -142,6 +157,14 @@ public class AuditEventController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String startTime,
             @RequestParam(required = false) String endTime,
+            @RequestParam(required = false) String traceId,
+            // ======== P2 context filter params ========
+            @RequestParam(required = false) String tenant,
+            @RequestParam(required = false) String department,
+            @RequestParam(required = false) String browser,
+            @RequestParam(required = false) String ip,
+            @RequestParam(required = false) String workspace,
+            @RequestParam(required = false) String project,
             HttpServletResponse response) throws IOException {
 
         AuditEventQuery query = new AuditEventQuery();
@@ -152,6 +175,13 @@ public class AuditEventController {
         if (keyword != null && !keyword.isBlank()) query.setKeyword(keyword);
         if (startTime != null && !startTime.isBlank()) query.setStartTime(LocalDateTime.parse(startTime));
         if (endTime != null && !endTime.isBlank()) query.setEndTime(LocalDateTime.parse(endTime));
+        if (traceId != null && !traceId.isBlank()) query.setTraceId(traceId);
+        if (tenant != null && !tenant.isBlank()) query.setTenant(tenant);
+        if (department != null && !department.isBlank()) query.setDepartment(department);
+        if (browser != null && !browser.isBlank()) query.setBrowser(browser);
+        if (ip != null && !ip.isBlank()) query.setIp(ip);
+        if (workspace != null && !workspace.isBlank()) query.setWorkspace(workspace);
+        if (project != null && !project.isBlank()) query.setProject(project);
 
         String filename = "audit-events-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + ".csv";
         response.setContentType("text/csv; charset=UTF-8");

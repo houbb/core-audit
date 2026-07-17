@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.houbb.core.audit.application.domain.AuditEvent;
+import com.github.houbb.core.audit.application.domain.context.AuditContext;
 import com.github.houbb.core.audit.application.domain.enums.AuditAction;
 import com.github.houbb.core.audit.application.domain.enums.AuditEventType;
 import com.github.houbb.core.audit.application.domain.enums.AuditModule;
@@ -55,6 +56,8 @@ public final class AuditEventConverter {
         entity.setPublishTime(domain.getPublishTime() != null ? domain.getPublishTime().toString() : null);
         entity.setPublishResult(domain.getPublishResult());
         entity.setMetadata(serializeMetadata(domain.getMetadata()));
+        // P2 context
+        entity.setContextJson(serializeContext(domain.getContext()));
         return entity;
     }
 
@@ -89,6 +92,8 @@ public final class AuditEventConverter {
         domain.setPublishTime(entity.getPublishTime() != null ? LocalDateTime.parse(entity.getPublishTime()) : null);
         domain.setPublishResult(entity.getPublishResult());
         domain.setMetadata(deserializeMetadata(entity.getMetadata()));
+        // P2 context
+        domain.setContext(deserializeContext(entity.getContextJson()));
         return domain;
     }
 
@@ -107,6 +112,24 @@ public final class AuditEventConverter {
             return objectMapper.readValue(json, new TypeReference<>() {});
         } catch (JsonProcessingException e) {
             return Collections.emptyMap();
+        }
+    }
+
+    private static String serializeContext(AuditContext context) {
+        if (context == null) return null;
+        try {
+            return objectMapper.writeValueAsString(context);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
+    }
+
+    private static AuditContext deserializeContext(String json) {
+        if (json == null || json.isBlank()) return null;
+        try {
+            return objectMapper.readValue(json, AuditContext.class);
+        } catch (JsonProcessingException e) {
+            return null;
         }
     }
 }

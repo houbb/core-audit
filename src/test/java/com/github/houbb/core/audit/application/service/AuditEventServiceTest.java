@@ -1,5 +1,6 @@
 package com.github.houbb.core.audit.application.service;
 
+import com.github.houbb.core.audit.application.context.ContextResolver;
 import com.github.houbb.core.audit.application.domain.AuditEvent;
 import com.github.houbb.core.audit.application.domain.AuditEventPage;
 import com.github.houbb.core.audit.application.domain.enums.AuditAction;
@@ -34,11 +35,14 @@ class AuditEventServiceTest {
     @Mock
     private AuditEventPublisher publisher;
 
+    @Mock
+    private ContextResolver contextResolver;
+
     private AuditEventService service;
 
     @BeforeEach
     void setUp() {
-        service = new AuditEventService(repository, publisher);
+        service = new AuditEventService(repository, publisher, contextResolver);
     }
 
     @Test
@@ -63,6 +67,7 @@ class AuditEventServiceTest {
         assertNotNull(saved.getVersion());
         assertEquals("1.0", saved.getVersion());
         verify(repository).save(any());
+        verify(contextResolver).resolve(any());
         verify(publisher).publish(any());
     }
 
@@ -182,6 +187,10 @@ class AuditEventServiceTest {
         when(repository.countActiveModulesToday()).thenReturn(3);
         when(repository.countTodayPublished()).thenReturn(95L);
         when(repository.countTodayPublishFailed()).thenReturn(2L);
+        when(repository.browserDistributionToday()).thenReturn(java.util.Map.of("Chrome", 68L));
+        when(repository.topOperatorsToday(5)).thenReturn(java.util.List.of());
+        when(repository.topModulesToday(5)).thenReturn(java.util.List.of());
+        when(repository.topOrganizationsToday(5)).thenReturn(java.util.List.of());
         when(repository.findAll(any())).thenReturn(new AuditEventPage(List.of(), 1, 10, 0));
 
         AuditEventService.DashboardStats stats = service.getDashboardStats();
