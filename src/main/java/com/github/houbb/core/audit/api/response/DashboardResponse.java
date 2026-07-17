@@ -23,6 +23,10 @@ public class DashboardResponse {
     private List<Map<String, Object>> topModules;
     private List<Map<String, Object>> topOrganizations;
 
+    // ======== P3 diff stats ========
+    private Map<String, Long> changeTypeDistribution;
+    private List<Map<String, Object>> topChangedFields;
+
     // ======== Getters ========
 
     public long getTodayTotal() { return todayTotal; }
@@ -37,6 +41,8 @@ public class DashboardResponse {
     public List<Map<String, Object>> getTopOperators() { return topOperators; }
     public List<Map<String, Object>> getTopModules() { return topModules; }
     public List<Map<String, Object>> getTopOrganizations() { return topOrganizations; }
+    public Map<String, Long> getChangeTypeDistribution() { return changeTypeDistribution; }
+    public List<Map<String, Object>> getTopChangedFields() { return topChangedFields; }
 
     // ======== Builder-style setters ========
 
@@ -52,4 +58,6 @@ public class DashboardResponse {
     public DashboardResponse topOperators(List<Map<String, Object>> v) { this.topOperators = v; return this; }
     public DashboardResponse topModules(List<Map<String, Object>> v) { this.topModules = v; return this; }
     public DashboardResponse topOrganizations(List<Map<String, Object>> v) { this.topOrganizations = v; return this; }
+    public DashboardResponse changeTypeDistribution(Map<String, Long> v) { this.changeTypeDistribution = v; return this; }
+    public DashboardResponse topChangedFields(List<Map<String, Object>> v) { this.topChangedFields = v; return this; }
 }

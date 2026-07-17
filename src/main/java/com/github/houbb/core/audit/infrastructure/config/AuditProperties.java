@@ -19,11 +19,17 @@ public class AuditProperties {
     /** P2 Context 配置 */
     private Context context = new Context();
 
+    /** P3 Diff 配置 */
+    private Diff diff = new Diff();
+
     public Sdk getSdk() { return sdk; }
     public void setSdk(Sdk sdk) { this.sdk = sdk; }
 
     public Context getContext() { return context; }
     public void setContext(Context context) { this.context = context; }
+
+    public Diff getDiff() { return diff; }
+    public void setDiff(Diff diff) { this.diff = diff; }
 
     public static class Sdk {
         /** 是否启用 SDK */
@@ -44,5 +50,18 @@ public class AuditProperties {
         public void setEnabled(boolean enabled) { this.enabled = enabled; }
         public List<String> getExcludedPaths() { return excludedPaths; }
         public void setExcludedPaths(List<String> excludedPaths) { this.excludedPaths = excludedPaths; }
+    }
+
+    public static class Diff {
+        /** 是否启用 Diff */
+        private boolean enabled = true;
+
+        /** 最大快照大小（字节），默认 2MB */
+        private Long maxSnapshotSize = 2 * 1024 * 1024L;
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+        public Long getMaxSnapshotSize() { return maxSnapshotSize; }
+        public void setMaxSnapshotSize(Long maxSnapshotSize) { this.maxSnapshotSize = maxSnapshotSize; }
     }
 }

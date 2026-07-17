@@ -8,12 +8,12 @@ import com.github.houbb.core.audit.application.domain.enums.AuditEventType;
 import com.github.houbb.core.audit.application.domain.enums.AuditModule;
 import com.github.houbb.core.audit.application.domain.enums.AuditResult;
 import com.github.houbb.core.audit.application.port.AuditEventRepository;
+import com.github.houbb.core.audit.application.port.ChangeRepository;
 import com.github.houbb.core.audit.application.query.AuditEventQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -38,11 +38,21 @@ class AuditEventServiceTest {
     @Mock
     private ContextResolver contextResolver;
 
+    @Mock
+    private DiffEngine diffEngine;
+
+    @Mock
+    private SnapshotResolver snapshotResolver;
+
+    @Mock
+    private ChangeRepository changeRepository;
+
     private AuditEventService service;
 
     @BeforeEach
     void setUp() {
-        service = new AuditEventService(repository, publisher, contextResolver);
+        service = new AuditEventService(repository, publisher, contextResolver,
+                diffEngine, snapshotResolver, changeRepository);
     }
 
     @Test
@@ -192,6 +202,8 @@ class AuditEventServiceTest {
         when(repository.topModulesToday(5)).thenReturn(java.util.List.of());
         when(repository.topOrganizationsToday(5)).thenReturn(java.util.List.of());
         when(repository.findAll(any())).thenReturn(new AuditEventPage(List.of(), 1, 10, 0));
+        when(changeRepository.changeTypeDistributionToday()).thenReturn(java.util.Map.of("UPDATE", 100L));
+        when(changeRepository.topChangedFieldsToday(5)).thenReturn(java.util.List.of());
 
         AuditEventService.DashboardStats stats = service.getDashboardStats();
 

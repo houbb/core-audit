@@ -44,6 +44,8 @@ public class AuditDashboardController {
                 .topOperators(stats.getTopOperators())
                 .topModules(stats.getTopModules())
                 .topOrganizations(stats.getTopOrganizations())
+                .changeTypeDistribution(stats.getChangeTypeDistribution())
+                .topChangedFields(stats.getTopChangedFields())
                 .recentEvents(stats.getRecentEvents().stream()
                         .map(AuditEventResponse::from)
                         .toList());

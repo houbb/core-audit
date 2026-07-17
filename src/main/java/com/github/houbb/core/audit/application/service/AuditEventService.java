@@ -3,7 +3,11 @@ package com.github.houbb.core.audit.application.service;
 import com.github.houbb.core.audit.application.context.ContextResolver;
 import com.github.houbb.core.audit.application.domain.AuditEvent;
 import com.github.houbb.core.audit.application.domain.AuditEventPage;
+import com.github.houbb.core.audit.application.domain.diff.Change;
+import com.github.houbb.core.audit.application.domain.diff.ChangeSet;
+import com.github.houbb.core.audit.application.domain.enums.AuditAction;
 import com.github.houbb.core.audit.application.port.AuditEventRepository;
+import com.github.houbb.core.audit.application.port.ChangeRepository;
 import com.github.houbb.core.audit.application.query.AuditEventQuery;
 import com.github.houbb.core.audit.infrastructure.csv.CsvExportUtil;
 import org.slf4j.Logger;
@@ -28,12 +32,20 @@ public class AuditEventService {
     private final AuditEventRepository repository;
     private final AuditEventPublisher publisher;
     private final ContextResolver contextResolver;
+    private final DiffEngine diffEngine;
+    private final SnapshotResolver snapshotResolver;
+    private final ChangeRepository changeRepository;
 
     public AuditEventService(AuditEventRepository repository, AuditEventPublisher publisher,
-                             ContextResolver contextResolver) {
+                             ContextResolver contextResolver,
+                             DiffEngine diffEngine, SnapshotResolver snapshotResolver,
+                             ChangeRepository changeRepository) {
         this.repository = repository;
         this.publisher = publisher;
         this.contextResolver = contextResolver;
+        this.diffEngine = diffEngine;
+        this.snapshotResolver = snapshotResolver;
+        this.changeRepository = changeRepository;
     }
 
     /**
@@ -71,6 +83,9 @@ public class AuditEventService {
 
         // P2: auto-resolve context before save
         contextResolver.resolve(event);
+
+        // P3: Diff pipeline (only for UPDATE with before/after metadata)
+        performDiff(event);
 
         AuditEvent saved = repository.save(event);
 
@@ -126,6 +141,10 @@ public class AuditEventService {
         stats.setTopModules(repository.topModulesToday(5));
         stats.setTopOrganizations(repository.topOrganizationsToday(5));
 
+        // P3 diff stats
+        stats.setChangeTypeDistribution(changeRepository.changeTypeDistributionToday());
+        stats.setTopChangedFields(changeRepository.topChangedFieldsToday(5));
+
         // 最近 10 条操作
         AuditEventQuery recentQuery = new AuditEventQuery();
         recentQuery.setPage(1);
@@ -134,6 +153,74 @@ public class AuditEventService {
         stats.setRecentEvents(recentPage.getItems());
 
         return stats;
+    }
+
+    /**
+     * 获取变更列表
+     *
+     * @param auditId 审计事件 ID
+     * @return 变更列表
+     */
+    public List<Change> getChangesByAuditId(String auditId) {
+        return changeRepository.findByAuditId(auditId);
+    }
+
+    /**
+     * 搜索变更记录
+     */
+    public List<Change> searchChanges(String fieldName, String afterValue, int page, int size) {
+        int offset = (page - 1) * size;
+        return changeRepository.search(fieldName, afterValue, size, offset);
+    }
+
+    /**
+     * 搜索变更记录总数
+     */
+    public long countSearchChanges(String fieldName, String afterValue) {
+        return changeRepository.countBySearch(fieldName, afterValue);
+    }
+
+    /**
+     * P3 Diff Pipeline — 仅在 UPDATE 且有 before/after metadata 时执行
+     */
+    private void performDiff(AuditEvent event) {
+        if (event.getAction() != AuditAction.UPDATE) {
+            return;
+        }
+        if (event.getMetadata() == null || event.getMetadata().isEmpty()) {
+            return;
+        }
+
+        Object before = event.getMetadata().get("_before");
+        Object after = event.getMetadata().get("_after");
+
+        if (before == null && after == null) {
+            return;
+        }
+
+        try {
+            // 生成并保存快照
+            if (before != null) {
+                snapshotResolver.captureBefore(event.getId(), before);
+            }
+            if (after != null) {
+                snapshotResolver.captureAfter(event.getId(), after);
+            }
+
+            // 生成并保存变更
+            ChangeSet changeSet = diffEngine.diff(
+                    event.getTargetType(), event.getTargetId(),
+                    before, after, event.getOperatorName());
+
+            if (changeSet.hasChanges()) {
+                changeRepository.saveAll(event.getId(), changeSet.getChanges());
+                log.debug("Diff recorded for audit {}: {} changes ({} total fields)",
+                        event.getId(), changeSet.changedCount(), changeSet.getChanges().size());
+            }
+        } catch (Exception e) {
+            log.error("Diff pipeline failed for audit {}: {}", event.getId(), e.getMessage());
+            // Diff failure does NOT block audit recording
+        }
     }
 
     /**
@@ -151,6 +238,9 @@ public class AuditEventService {
         private List<Map<String, Object>> topModules = Collections.emptyList();
         private List<Map<String, Object>> topOrganizations = Collections.emptyList();
         private List<AuditEvent> recentEvents = Collections.emptyList();
+        // P3 diff stats
+        private Map<String, Long> changeTypeDistribution = Collections.emptyMap();
+        private List<Map<String, Object>> topChangedFields = Collections.emptyList();
 
         public long getTodayTotal() { return todayTotal; }
         public void setTodayTotal(long todayTotal) { this.todayTotal = todayTotal; }
@@ -174,5 +264,9 @@ public class AuditEventService {
         public void setTopOrganizations(List<Map<String, Object>> topOrganizations) { this.topOrganizations = topOrganizations; }
         public List<AuditEvent> getRecentEvents() { return recentEvents; }
         public void setRecentEvents(List<AuditEvent> recentEvents) { this.recentEvents = recentEvents; }
+    public Map<String, Long> getChangeTypeDistribution() { return changeTypeDistribution; }
+        public void setChangeTypeDistribution(Map<String, Long> changeTypeDistribution) { this.changeTypeDistribution = changeTypeDistribution; }
+        public List<Map<String, Object>> getTopChangedFields() { return topChangedFields; }
+        public void setTopChangedFields(List<Map<String, Object>> topChangedFields) { this.topChangedFields = topChangedFields; }
     }
 }
