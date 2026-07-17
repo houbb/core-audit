@@ -1,5 +1,96 @@
 # CHANGELOG
 
+## [0.6.0] - 2026-07-17
+
+### Added — P5: Timeline Runtime
+
+P5 将 `core-audit` 从"离散日志记录"升级为**统一行为时间线（Behavior Timeline）**，把 Audit Event 串联成完整的故事。
+
+> 核心目标：**围绕一个对象、一名用户、一个请求、一场事故，重建完整的行为轨迹。**
+
+**架构升级：**
+
+```
+Audit Event → TimelineStrategy (SPI) → Correlation Engine → Timeline Builder → Story
+                    │
+        Trace | Session | Resource | Operator | Workflow
+```
+
+**新增核心组件：**
+
+| 组件 | 位置 | 职责 |
+|------|------|------|
+| `Timeline` | `application/domain/timeline/` | 时间线领域对象（Builder 模式） |
+| `TimelineKey` | `application/domain/timeline/` | 时间线标识值对象（type + key） |
+| `TimelineType` | `application/domain/enums/` | USER / OBJECT / REQUEST / SESSION / INCIDENT / WORKFLOW |
+| `TimelineStrategy` | `application/timeline/` | 可插拔时间线聚合策略（SPI 扩展点） |
+| `TraceTimelineStrategy` | `infrastructure/timeline/` | 按 Trace ID 聚合（order=100） |
+| `SessionTimelineStrategy` | `infrastructure/timeline/` | 按 Session ID 聚合（order=200） |
+| `ResourceTimelineStrategy` | `infrastructure/timeline/` | 按 targetType#targetId 聚合（order=300） |
+| `OperatorTimelineStrategy` | `infrastructure/timeline/` | 按操作人 ID 聚合（order=400） |
+| `WorkflowTimelineStrategy` | `infrastructure/timeline/` | 按 Workflow ID 聚合（order=500） |
+| `TimelineService` | `application/service/` | 核心服务（Correlation Engine + Story Builder） |
+| `TimelineRepository` | `application/port/` | 时间线仓储端口 |
+| `JdbcTimelineRepository` | `infrastructure/persistence/repository/` | JDBC 实现（SQLite/MySQL 双方言） |
+| `TimelineController` | `api/controller/` | REST API（4 个端点） |
+| `TimelinePage.vue` | `core-audit-web/src/pages/` | 三栏布局时间线页面 |
+| `TimelineListPage.vue` | `core-audit-web/src/pages/` | 对象/操作人/Trace 时间线列表 |
+| `TimelineNode.vue` | `core-audit-web/src/components/` | 时间轴节点组件 |
+
+**数据库变更：**
+- `audit_timeline` — 时间线主表
+- `audit_timeline_event` — Timeline 与 Audit Event 多对多关联
+
+**API 新增：**
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/audit/timeline/{id}` | 获取完整 Timeline（含所有事件） |
+| GET | `/api/v1/audit/object/{id}/timeline` | 对象生命周期时间线 |
+| GET | `/api/v1/audit/operator/{id}/timeline` | 操作人行为时间线 |
+| GET | `/api/v1/audit/trace/{traceId}` | 请求链路时间线 |
+
+**Dashboard 扩展：**
+- `todayTimelineCount` — 今日时间线数量
+- `avgTimelineLength` — 平均事件数
+- `maxTimelineLength` — 最长事件链
+- `avgTimelineDuration` — 平均耗时
+
+**核心设计决策：**
+1. **同步增量** — record() 写库后同步追加 Timeline，insert between save and publish
+2. **多归属** — 一个 event 可属于多条 Timeline（SPI 遍历）
+3. **持续增长 + 会话窗口** — 两种 Timeline 生命周期模式
+4. **Story = Timeline** — Story Builder 做排序 + 自动标题，AI 总结留 P8
+
+### Changed — 目录结构重构
+
+前后端分离为独立子项目：
+
+```
+core-audit/
+├── core-audit-backend/     # Java Spring Boot 后端
+│   ├── pom.xml
+│   └── src/
+├── core-audit-web/          # Vue 3 前端（独立子项目）
+│   ├── package.json
+│   ├── vite.config.ts
+│   └── src/
+└── design-docs/             # 设计文档
+```
+
+### Changed — Context 字段扩展
+
+- `RequestContext` / `BusinessContext` 新增 `sessionId`、`workflowId`
+- `RequestContextProvider` 自动从 HTTP Header `X-Session-Id` / `X-Workflow-Id` 提取
+- `ContextResolver` 支持从 metadata 桥接 sessionId / workflowId
+
+### Changed — UI 规范
+
+- 所有 icon 统一使用 FontAwesome，禁止 emoji
+- `main.ts` 全局注册 `FontAwesomeIcon` 组件
+- `StatCard` 组件改用 FontAwesome 图标
+
+---
+
 ## [0.5.0] - 2026-07-17
 
 ### Added — P4: Search Runtime

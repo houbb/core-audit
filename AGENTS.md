@@ -42,6 +42,7 @@
 - 前端组件化，方便拓展
 - 遵循已有代码风格，保持一致
 - 只阅读核心相关文件，减少上下文
+- **所有 icon 必须使用 FontAwesome，禁止 emoji** — 前端所有图标统一用 `<i class="fas fa-xxx">` 或 `<FontAwesomeIcon>` 组件，不得使用 emoji 字符
 
 ---
 

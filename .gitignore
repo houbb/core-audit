@@ -99,3 +99,6 @@ data/
 
 # Distribution
 distribution/
+
+# Frontend build output (core-audit-web/dist)
+core-audit-web/dist/
