@@ -7,21 +7,56 @@ import com.github.houbb.core.audit.application.domain.enums.AuditModule;
 import com.github.houbb.core.audit.application.domain.enums.AuditResult;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * Audit SDK 对外接口
  * <p>所有 Core 模块统一通过此接口写入审计记录。</p>
+ *
+ * <p>P9 增强：支持 Sync/Async/Batch/Streaming 四种调用模式</p>
+ * <ul>
+ *   <li>{@link #record(AuditEvent)} — Async（默认，异步写入不阻塞业务线程）</li>
+ *   <li>{@link #recordSync(AuditEvent)} — Sync（同步写入，需要立即获取结果）</li>
+ *   <li>{@link #recordBatch(List)} — Batch（批量写入，一次提交多条）</li>
+ *   <li>{@link #recordBatchAsync(List)} — Batch Async（批量异步写入）</li>
+ * </ul>
  */
 public interface AuditSdkPort {
 
     /**
-     * 记录一条审计事件
+     * 异步记录一条审计事件（默认模式）
      * <p>异步执行，不阻塞业务线程。写入失败只打日志，不抛异常。</p>
      *
      * @param event 审计事件
      */
     void record(AuditEvent event);
+
+    /**
+     * P9: 同步记录一条审计事件
+     * <p>阻塞当前线程直到写入完成。适用于需要立即获取审计 ID 的场景。</p>
+     *
+     * @param event 审计事件
+     * @return 已保存的审计事件（含生成的 ID）
+     */
+    AuditEvent recordSync(AuditEvent event);
+
+    /**
+     * P9: 批量同步记录审计事件
+     * <p>一次请求提交多条审计事件，减少网络往返。</p>
+     *
+     * @param events 审计事件列表
+     * @return 已保存的审计事件列表
+     */
+    List<AuditEvent> recordBatch(List<AuditEvent> events);
+
+    /**
+     * P9: 批量异步记录审计事件
+     * <p>批量提交但不等待结果，适合高频非关键审计场景。</p>
+     *
+     * @param events 审计事件列表
+     */
+    void recordBatchAsync(List<AuditEvent> events);
 
     /**
      * 便捷方法：Builder 模式一键记录（P0 兼容，不带 eventType）

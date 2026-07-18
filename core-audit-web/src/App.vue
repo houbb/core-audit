@@ -33,9 +33,13 @@ function isActive(path: string): boolean {
           <span class="nav-icon"><FontAwesomeIcon icon="chart-bar" /></span>
           <span>Intelligence</span>
         </router-link>
+        <router-link to="/enterprise" class="nav-item" :class="{ active: currentRoute.path.startsWith('/enterprise') }">
+          <span class="nav-icon"><FontAwesomeIcon icon="building" /></span>
+          <span>Enterprise</span>
+        </router-link>
       </nav>
       <div class="sidebar-footer">
-        <span class="version">v1.0.0</span>
+        <span class="version">v0.10.0</span>
       </div>
     </aside>
     <main class="main">

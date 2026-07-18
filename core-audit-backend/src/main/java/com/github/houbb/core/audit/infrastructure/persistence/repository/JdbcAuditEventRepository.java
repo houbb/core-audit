@@ -83,9 +83,9 @@ public class JdbcAuditEventRepository implements AuditEventRepository {
                 "result, description, client_ip, request_uri, request_method, trace_id, " +
                 "metadata, created_at, " +
                 "event_id, event_type, source, version, occurred_at, published, publish_time, publish_result, " +
-                "context_json, " +
+                "context_json, tenant, " +
                 "create_time, update_time, create_user, update_user" +
-                ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 entity.getId(),
                 entity.getModule(),
                 entity.getAction(),
@@ -110,6 +110,7 @@ public class JdbcAuditEventRepository implements AuditEventRepository {
                 entity.getPublishTime(),
                 entity.getPublishResult(),
                 entity.getContextJson(),
+                entity.getTenant() != null ? entity.getTenant() : "default",
                 entity.getCreateTime(),
                 entity.getUpdateTime(),
                 entity.getCreateUser(),
@@ -273,7 +274,9 @@ public class JdbcAuditEventRepository implements AuditEventRepository {
             params.add(query.getTraceId());
         }
         if (query.getTenant() != null && !query.getTenant().isBlank()) {
-            sql.append(" AND ").append(jsonExtract("context_json", "$.operator.tenant")).append(" = ?");
+            // P9: prefer tenant column (direct), fallback to context_json extraction for backward compatibility
+            sql.append(" AND (tenant = ? OR ").append(jsonExtract("context_json", "$.operator.tenant")).append(" = ?)");
+            params.add(query.getTenant());
             params.add(query.getTenant());
         }
         if (query.getDepartment() != null && !query.getDepartment().isBlank()) {

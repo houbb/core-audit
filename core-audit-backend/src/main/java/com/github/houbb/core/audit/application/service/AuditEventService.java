@@ -51,6 +51,10 @@ public class AuditEventService {
     private final ExportTaskRepository exportTaskRepository;
     // P8
     private final IntelligenceService intelligenceService;
+    // P9
+    private final WebhookService webhookService;
+    private final SourceService sourceService;
+    private final MarketplaceService marketplaceService;
 
     public AuditEventService(AuditEventRepository repository, AuditEventPublisher publisher,
                              ContextResolver contextResolver,
@@ -63,7 +67,10 @@ public class AuditEventService {
                              LegalHoldRepository legalHoldRepository,
                              RetentionPolicyRepository retentionPolicyRepository,
                              ExportTaskRepository exportTaskRepository,
-                             IntelligenceService intelligenceService) {
+                             IntelligenceService intelligenceService,
+                             WebhookService webhookService,
+                             SourceService sourceService,
+                             MarketplaceService marketplaceService) {
         this.repository = repository;
         this.publisher = publisher;
         this.contextResolver = contextResolver;
@@ -78,6 +85,9 @@ public class AuditEventService {
         this.retentionPolicyRepository = retentionPolicyRepository;
         this.exportTaskRepository = exportTaskRepository;
         this.intelligenceService = intelligenceService;
+        this.webhookService = webhookService;
+        this.sourceService = sourceService;
+        this.marketplaceService = marketplaceService;
     }
 
     /**
@@ -107,6 +117,11 @@ public class AuditEventService {
         if (event.getVersion() == null || event.getVersion().isBlank()) {
             event.setVersion("1.0");
         }
+        // P9: default tenant
+        if (event.getTenant() == null || event.getTenant().isBlank()) {
+            // Try ThreadLocal from TenantFilter, fallback to "default"
+            event.setTenant(com.github.houbb.core.audit.infrastructure.tenant.TenantFilter.getCurrentTenant());
+        }
 
         log.debug("Recording audit event: module={}, action={}, eventType={}, target={}:{}, result={}",
                 event.getModule(), event.getAction(), event.getEventType(),
@@ -133,6 +148,13 @@ public class AuditEventService {
             intelligenceService.analyze(saved);
         } catch (Exception e) {
             log.warn("Intelligence analysis failed for audit {}: {}", saved.getId(), e.getMessage());
+        }
+
+        // P9: Webhook dispatch (async, fault-isolated)
+        try {
+            webhookService.dispatch(saved);
+        } catch (Exception e) {
+            log.warn("Webhook dispatch failed for audit {}: {}", saved.getId(), e.getMessage());
         }
 
         // P5: Timeline append (sync incremental, multi-home)
@@ -234,6 +256,12 @@ public class AuditEventService {
         stats.setTodayCriticalCount(intelStats.getTodayCriticalCount());
         stats.setTodayHighCount(intelStats.getTodayHighCount());
         stats.setAvgRiskScore(intelStats.getAvgRiskScore());
+
+        // P9 enterprise stats
+        stats.setSourceCount(sourceService.countByTenant("default"));
+        stats.setProviderCount(marketplaceService.countByTenant("default"));
+        stats.setSubscriptionCount(webhookService.getEnabledSubscriptions().size());
+        stats.setWebhookDeliveryCount(webhookService.countDeliveriesToday());
 
         // 最近 10 条操作
         AuditEventQuery recentQuery = new AuditEventQuery();
@@ -355,6 +383,12 @@ public class AuditEventService {
         private long todayHighCount;
         private double avgRiskScore;
 
+        // P9 enterprise stats
+        private long sourceCount;
+        private long providerCount;
+        private long subscriptionCount;
+        private long webhookDeliveryCount;
+
         public long getTodayTotal() { return todayTotal; }
         public void setTodayTotal(long todayTotal) { this.todayTotal = todayTotal; }
         public long getTodaySuccess() { return todaySuccess; }
@@ -413,5 +447,14 @@ public class AuditEventService {
         public void setTodayHighCount(long todayHighCount) { this.todayHighCount = todayHighCount; }
         public double getAvgRiskScore() { return avgRiskScore; }
         public void setAvgRiskScore(double avgRiskScore) { this.avgRiskScore = avgRiskScore; }
+
+        public long getSourceCount() { return sourceCount; }
+        public void setSourceCount(long sourceCount) { this.sourceCount = sourceCount; }
+        public long getProviderCount() { return providerCount; }
+        public void setProviderCount(long providerCount) { this.providerCount = providerCount; }
+        public long getSubscriptionCount() { return subscriptionCount; }
+        public void setSubscriptionCount(long subscriptionCount) { this.subscriptionCount = subscriptionCount; }
+        public long getWebhookDeliveryCount() { return webhookDeliveryCount; }
+        public void setWebhookDeliveryCount(long webhookDeliveryCount) { this.webhookDeliveryCount = webhookDeliveryCount; }
     }
 }

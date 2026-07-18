@@ -45,6 +45,8 @@ public class AuditEventRowMapper implements RowMapper<AuditEventEntity> {
         entity.setUpdateUser(rs.getString("update_user"));
         // P2 context
         entity.setContextJson(rs.getString("context_json"));
+        // P9 tenant
+        entity.setTenant(rs.getString("tenant"));
         return entity;
     }
 }

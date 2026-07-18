@@ -40,6 +40,9 @@ public class AuditEventEntity {
     // ======== P2 context field ========
     private String contextJson;         // JSON representation of AuditContext
 
+    // ======== P9 tenant field ========
+    private String tenant;              // 多租户隔离字段
+
     // ======== Getters & Setters ========
 
     public String getId() { return id; }
@@ -103,4 +106,8 @@ public class AuditEventEntity {
     // ======== P2 getters & setters ========
     public String getContextJson() { return contextJson; }
     public void setContextJson(String contextJson) { this.contextJson = contextJson; }
+
+    // ======== P9 getters & setters ========
+    public String getTenant() { return tenant; }
+    public void setTenant(String tenant) { this.tenant = tenant; }
 }

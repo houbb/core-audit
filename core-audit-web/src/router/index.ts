@@ -50,6 +50,32 @@ const router = createRouter({
       name: 'intelligence-detail',
       component: () => import('@/pages/InsightDetailPage.vue'),
     },
+    // ======== P9 Enterprise routes ========
+    {
+      path: '/enterprise',
+      name: 'enterprise-dashboard',
+      component: () => import('@/pages/EnterpriseDashboardPage.vue'),
+    },
+    {
+      path: '/enterprise/sources',
+      name: 'enterprise-sources',
+      component: () => import('@/pages/EnterpriseSourcesPage.vue'),
+    },
+    {
+      path: '/enterprise/providers',
+      name: 'enterprise-providers',
+      component: () => import('@/pages/EnterpriseProvidersPage.vue'),
+    },
+    {
+      path: '/enterprise/subscriptions',
+      name: 'enterprise-subscriptions',
+      component: () => import('@/pages/EnterpriseSubscriptionsPage.vue'),
+    },
+    {
+      path: '/enterprise/search',
+      name: 'enterprise-search',
+      component: () => import('@/pages/EnterpriseSearchPage.vue'),
+    },
   ],
 })
 

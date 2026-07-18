@@ -1,5 +1,206 @@
 # CHANGELOG
 
+## [0.10.0] - 2026-07-18
+
+### Added — P9: Enterprise Audit Platform
+
+P9 将 `core-audit` 从一个独立模块升级为**企业统一审计平台（Enterprise Audit Platform）**，让所有系统、所有服务、所有 Agent、所有插件共享同一套审计能力。
+
+> 核心目标：**One Platform, One SDK, One Timeline, One Intelligence, One Governance.**
+
+**架构升级：**
+
+```
+                    Enterprise Audit Platform
+
+                      Gateway / SDK
+                            │
+          ┌─────────────────┼──────────────────┐
+          │                 │                  │
+    Audit Ingestion   Audit Query API   Audit Streaming
+          │                 │                  │
+          └─────────────────┼──────────────────┘
+                            ▼
+                    Audit Core Engine
+                            │
+  ┌─────────────┬──────────────┬──────────────┬─────────────┐
+  │ Record      │ Timeline     │ Compliance   │ Intelligence│
+  └─────────────┴──────────────┴──────────────┴─────────────┘
+                            │
+                 Unified Audit Repository
+```
+
+**P9 十二大模块：**
+
+| 模块 | 位置 | 职责 |
+|------|------|------|
+| **V10 Migration** | `db/migration/V10__p9_enterprise_tables.sql` | audit_event 加 tenant 列 + audit_source / audit_provider / audit_subscription / audit_webhook_delivery 四张新表 |
+| **Audit Ingestion SDK** | `application/port/AuditSdkPort.java` | Sync/Async/Batch/BatchAsync 四种写入模式 |
+| **Source 注册管理** | `application/service/SourceService.java` | 来源系统注册、心跳、CRUD |
+| **Multi-Tenant** | `infrastructure/tenant/TenantFilter.java` | X-Tenant-Id header → ThreadLocal → 自动填充 |
+| **Plugin Marketplace** | `application/service/MarketplaceService.java` | SPI 插件安装/卸载/启用/禁用 |
+| **Open Audit API** | `api/controller/EnterpriseGatewayController.java` | `/api/v1/audit/enterprise/overview` + `/health` 统一入口 |
+| **Streaming Runtime** | `application/streaming/StreamingAdapter.java` + `infrastructure/streaming/LocalStreamingAdapter.java` | MQ Adapter 抽象层，MVP 本地事件总线 |
+| **Webhook Runtime** | `application/service/WebhookService.java` | 异步 Webhook 分发 + HMAC 签名 + 重试 + 投递日志 |
+| **Global Search** | `api/controller/GlobalSearchController.java` | `/api/v1/audit/search` 跨模块检索 + `/search/suggest` |
+| **Cross-System Timeline** | `infrastructure/timeline/SourceTimelineStrategy.java` | 按 source+tenant 聚合跨系统操作链 |
+| **Enterprise Dashboard** | `core-audit-web/src/pages/EnterpriseDashboardPage.vue` | 企业运营中心首页（四大统计行 + 快速入口 + Intelligence/Compliance 面板） |
+| **Admin UX** | SourcesPage / ProvidersPage / SubscriptionsPage / SearchPage | 管理中心四页面：来源/插件/订阅/搜索 |
+
+**数据库变更：**
+- `ALTER TABLE audit_event ADD COLUMN tenant TEXT DEFAULT 'default'` + 2 个索引
+- `audit_source` — 来源系统注册表（name, type, version, tenant, endpoint, auth_token, status）
+- `audit_provider` — 插件 Marketplace 表（plugin, provider_class, provider_type, version, status）
+- `audit_subscription` — Webhook 订阅表（subscriber, event_type, target, target_url, secret, retry）
+- `audit_webhook_delivery` — Webhook 投递日志表（subscription_id, audit_id, response_code, duration_ms, status）
+
+**领域模型新增：**
+- `AuditSource` — 来源系统领域对象（Builder 模式）
+- `AuditProvider` — SPI 插件领域对象（Builder 模式）
+- `AuditSubscription` — 订阅领域对象（Builder 模式）
+- `WebhookDelivery` — 投递日志领域对象（Builder 模式）
+
+**API 新增（18 个端点）：**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| **Enterprise Gateway** |||
+| GET | `/api/v1/audit/enterprise/overview` | 企业平台总览（聚合所有 Dashboard 指标） |
+| GET | `/api/v1/audit/enterprise/health` | 平台健康检查 |
+| **Source Management** |||
+| POST | `/api/v1/audit/enterprise/sources` | 注册/更新来源系统 |
+| GET | `/api/v1/audit/enterprise/sources` | 获取所有来源系统 |
+| GET | `/api/v1/audit/enterprise/sources/active` | 获取活跃来源 |
+| POST | `/api/v1/audit/enterprise/sources/{id}/heartbeat` | 来源心跳 |
+| DELETE | `/api/v1/audit/enterprise/sources/{id}` | 删除来源 |
+| **Marketplace** |||
+| POST | `/api/v1/audit/enterprise/providers` | 安装插件 |
+| GET | `/api/v1/audit/enterprise/providers` | 获取所有插件 |
+| GET | `/api/v1/audit/enterprise/providers/active` | 获取活跃插件 |
+| GET | `/api/v1/audit/enterprise/providers/type/{type}` | 按类型获取插件 |
+| PUT | `/api/v1/audit/enterprise/providers/{id}/status` | 启用/禁用插件 |
+| DELETE | `/api/v1/audit/enterprise/providers/{id}` | 卸载插件 |
+| **Webhook** |||
+| POST | `/api/v1/audit/enterprise/subscriptions` | 创建订阅 |
+| GET | `/api/v1/audit/enterprise/subscriptions` | 获取所有订阅 |
+| GET | `/api/v1/audit/enterprise/subscriptions/enabled` | 获取已启用订阅 |
+| DELETE | `/api/v1/audit/enterprise/subscriptions/{id}` | 删除订阅 |
+| GET | `/api/v1/audit/enterprise/subscriptions/{id}/deliveries` | 获取投递日志 |
+| **Global Search** |||
+| GET | `/api/v1/audit/search` | 全局搜索（含 moduleDistribution） |
+| GET | `/api/v1/audit/search/suggest` | 搜索建议 |
+
+**Dashboard 扩展：**
+- `sourceCount` — 接入来源系统数
+- `providerCount` — 已安装插件数
+- `subscriptionCount` — Webhook 订阅数
+- `webhookDeliveryCount` — 今日投递数
+
+**SDK 增强（P9 四种写入模式）：**
+```java
+// ① Async（默认）— 不阻塞业务线程
+audit.record(event);
+
+// ② Sync — 需要立即获取审计 ID
+AuditEvent saved = audit.recordSync(event);
+
+// ③ Batch — 批量同步提交
+List<AuditEvent> results = audit.recordBatch(events);
+
+// ④ BatchAsync — 批量异步提交
+audit.recordBatchAsync(events);
+```
+
+**Multi-Tenant 设计：**
+- HTTP Header `X-Tenant-Id` → `TenantFilter`（Ordered.HIGHEST_PRECEDENCE）→ ThreadLocal
+- `AuditEventService.record()` 自动从 ThreadLocal 读取 tenant，fallback "default"
+- 所有查询 API 支持 `tenant` 参数过滤
+- `audit_event.tenant` 列 + `context_json` 双重兼容
+
+**Streaming MQ Adapter 抽象：**
+```java
+public interface StreamingAdapter {
+    void publish(AuditEvent event);
+    void publishBatch(List<AuditEvent> events);
+    String name();
+    boolean isEnabled();
+}
+```
+- MVP: `LocalStreamingAdapter`（内存 CopyOnWriteArrayList，零依赖）
+- 企业版：实现 `KafkaStreamingAdapter` 后注册为 Bean 即可替换
+
+**Webhook Runtime 设计：**
+- `@Async` 异步分发，不阻塞审计主流程
+- HMAC-SHA256 签名（`X-Audit-Signature` header）
+- 可配置重试次数 + 超时时间
+- 每次投递记录到 `audit_webhook_delivery`（完整日志）
+- Fault isolation：单个订阅失败不影响其他订阅
+
+**Cross-System Timeline：**
+- `SourceTimelineStrategy` — 按 source+tenant 聚合 Timeline（order=600）
+- 同一来源系统在同一个租户下的所有事件自动串联
+
+**前端新增（5 个页面）：**
+- `EnterpriseDashboardPage.vue` — 企业运营中心首页
+- `EnterpriseSourcesPage.vue` — 来源系统管理
+- `EnterpriseProvidersPage.vue` — Plugin Marketplace
+- `EnterpriseSubscriptionsPage.vue` — Webhook 订阅管理
+- `EnterpriseSearchPage.vue` — Global Search
+
+**前端路由新增：**
+- `/enterprise` → EnterpriseDashboardPage
+- `/enterprise/sources` → EnterpriseSourcesPage
+- `/enterprise/providers` → EnterpriseProvidersPage
+- `/enterprise/subscriptions` → EnterpriseSubscriptionsPage
+- `/enterprise/search` → EnterpriseSearchPage
+
+**Sidebar 新增：**
+- "Enterprise" 导航项（building 图标），链接到 `/enterprise`
+
+**核心设计决策：**
+1. **平台化不新增业务能力** — P9 只做 SDK、Gateway、Tenant、Plugin、Streaming、Webhook，不做 Diff V2 / Replay V2
+2. **SDK 四种模式** — Sync/Async/Batch/BatchAsync，覆盖所有调用场景
+3. **Tenant 默认 "default"** — 向后兼容，不强制租户隔离
+4. **MVP 本地事件总线** — Streaming 用 `LocalStreamingAdapter`，后续接 Kafka 不改业务代码
+5. **Webhook fault isolation** — 单个 Webhook 失败不阻塞其他订阅和审计主流程
+6. **Source 注册 + 心跳** — 每个接入系统有独立身份和版本追踪
+7. **Plugin 类型化** — PROVIDER / TIMELINE_STRATEGY / REPLAY_STRATEGY / COMPLIANCE_PROVIDER / AUDIT_AGENT 五种 SPI 类型
+8. **Global Search 单数据源** — MVP 搜索 core-audit 自身，预留 Source endpoint 回调扩展
+
+**配置新增：**
+- `core.audit.enterprise.enabled` — 企业平台总开关（默认 true）
+- `core.audit.enterprise.default-tenant` — 默认租户（默认 "default"）
+- `core.audit.enterprise.webhook-enabled` — Webhook 开关（默认 true）
+- `core.audit.enterprise.streaming-enabled` — Streaming 开关（默认 true）
+- `core.audit.enterprise.marketplace-enabled` — Marketplace 开关（默认 true）
+
+**测试：**
+149 个 JUnit 5 用例全部通过，0 失败（含 141 个现有测试 + 8 个新增 P9 测试）。
+
+**P0～P9 完整演进：**
+
+```
+P0  Record Runtime        — 记录行为
+P1  Event Runtime         — 传播事件
+P2  Context Runtime       — 补全上下文
+P3  Diff Runtime          — 记录变更
+P4  Search Runtime        — 快速调查
+P5  Timeline Runtime      — 重建行为链路
+P6  Replay Runtime        — 重建操作过程
+P7  Compliance Runtime    — 建立可信治理
+P8  Intelligence Runtime  — 智能分析
+P9  Enterprise Platform   — 企业统一审计平台
+```
+
+到 **P9**，`core-audit` 已完成从"审计日志组件"到"企业统一审计平台"的完整演进：
+- **One Platform** — 所有系统共享一套审计
+- **One SDK** — 四种写入模式，统一接口
+- **One Timeline** — 跨系统行为串联
+- **One Intelligence** — 统一 AI 分析
+- **One Governance** — 统一合规治理
+
+---
+
 ## [0.8.0] - 2026-07-17
 
 ### Added — P7: Compliance Runtime

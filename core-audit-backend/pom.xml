@@ -13,7 +13,7 @@
 
     <groupId>com.github.houbb</groupId>
     <artifactId>core-audit</artifactId>
-    <version>0.8.0</version>
+    <version>0.10.0</version>
     <name>core-audit</name>
     <description>Enterprise Audit Runtime for Core Platform</description>
 

@@ -87,6 +87,9 @@ public class AuditEvent {
     /** P2 统一上下文（Operator + Request + Client + Business + System） */
     private AuditContext context;
 
+    /** P9 租户标识（多租户隔离，默认 "default"） */
+    private String tenant;
+
     // ======== Constructors ========
 
     public AuditEvent() {
@@ -117,6 +120,7 @@ public class AuditEvent {
         this.createdAt = builder.createdAt;
         this.metadata = builder.metadata;
         this.context = builder.context;
+        this.tenant = builder.tenant;
     }
 
     // ======== Builder ========
@@ -150,6 +154,7 @@ public class AuditEvent {
         private LocalDateTime createdAt;
         private Map<String, Object> metadata;
         private AuditContext context;
+        private String tenant;
 
         public Builder id(String id) { this.id = id; return this; }
         public Builder module(AuditModule module) { this.module = module; return this; }
@@ -175,6 +180,7 @@ public class AuditEvent {
         public Builder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
         public Builder metadata(Map<String, Object> metadata) { this.metadata = metadata; return this; }
         public Builder context(AuditContext context) { this.context = context; return this; }
+        public Builder tenant(String tenant) { this.tenant = tenant; return this; }
 
         public AuditEvent build() {
             return new AuditEvent(this);
@@ -207,6 +213,7 @@ public class AuditEvent {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public Map<String, Object> getMetadata() { return metadata; }
     public AuditContext getContext() { return context; }
+    public String getTenant() { return tenant; }
 
     // ======== Setters ========
 
@@ -234,4 +241,5 @@ public class AuditEvent {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public void setMetadata(Map<String, Object> metadata) { this.metadata = metadata; }
     public void setContext(AuditContext context) { this.context = context; }
+    public void setTenant(String tenant) { this.tenant = tenant; }
 }

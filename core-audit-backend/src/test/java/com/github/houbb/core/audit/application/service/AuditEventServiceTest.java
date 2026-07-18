@@ -74,6 +74,12 @@ class AuditEventServiceTest {
 
     @Mock
     private IntelligenceService intelligenceService;
+    @Mock
+    private WebhookService webhookService;
+    @Mock
+    private SourceService sourceService;
+    @Mock
+    private MarketplaceService marketplaceService;
 
     private AuditEventService service;
 
@@ -83,7 +89,8 @@ class AuditEventServiceTest {
                 diffEngine, snapshotResolver, changeRepository, auditQueryEngine,
                 timelineService, replayService,
                 integrityService, legalHoldRepository, retentionPolicyRepository,
-                exportTaskRepository, intelligenceService);
+                exportTaskRepository, intelligenceService,
+                webhookService, sourceService, marketplaceService);
     }
 
     @Test

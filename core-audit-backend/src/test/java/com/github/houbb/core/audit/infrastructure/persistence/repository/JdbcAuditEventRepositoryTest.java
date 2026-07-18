@@ -63,6 +63,7 @@ class JdbcAuditEventRepositoryTest {
                     publish_time     VARCHAR(30),
                     publish_result   VARCHAR(20),
                     context_json     TEXT,
+                    tenant           VARCHAR(50) DEFAULT 'default',
                     create_time     VARCHAR(30),
                     update_time     VARCHAR(30),
                     create_user     VARCHAR(100),

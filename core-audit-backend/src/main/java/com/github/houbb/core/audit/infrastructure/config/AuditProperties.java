@@ -31,6 +31,9 @@ public class AuditProperties {
     /** P8 Intelligence 配置 */
     private Intelligence intelligence = new Intelligence();
 
+    /** P9 Enterprise 配置 */
+    private Enterprise enterprise = new Enterprise();
+
     public Sdk getSdk() { return sdk; }
     public void setSdk(Sdk sdk) { this.sdk = sdk; }
 
@@ -48,6 +51,9 @@ public class AuditProperties {
 
     public Intelligence getIntelligence() { return intelligence; }
     public void setIntelligence(Intelligence intelligence) { this.intelligence = intelligence; }
+
+    public Enterprise getEnterprise() { return enterprise; }
+    public void setEnterprise(Enterprise enterprise) { this.enterprise = enterprise; }
 
     public static class Sdk {
         /** 是否启用 SDK */
@@ -183,5 +189,35 @@ public class AuditProperties {
             public String getApiKey() { return apiKey; }
             public void setApiKey(String apiKey) { this.apiKey = apiKey; }
         }
+    }
+
+    // ======== P9 Enterprise ========
+
+    public static class Enterprise {
+        /** 是否启用企业平台功能 */
+        private boolean enabled = true;
+
+        /** 默认租户 ID */
+        private String defaultTenant = "default";
+
+        /** Webhook 是否启用 */
+        private boolean webhookEnabled = true;
+
+        /** Streaming 是否启用 */
+        private boolean streamingEnabled = true;
+
+        /** 插件 Marketplace 是否启用 */
+        private boolean marketplaceEnabled = true;
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+        public String getDefaultTenant() { return defaultTenant; }
+        public void setDefaultTenant(String defaultTenant) { this.defaultTenant = defaultTenant; }
+        public boolean isWebhookEnabled() { return webhookEnabled; }
+        public void setWebhookEnabled(boolean webhookEnabled) { this.webhookEnabled = webhookEnabled; }
+        public boolean isStreamingEnabled() { return streamingEnabled; }
+        public void setStreamingEnabled(boolean streamingEnabled) { this.streamingEnabled = streamingEnabled; }
+        public boolean isMarketplaceEnabled() { return marketplaceEnabled; }
+        public void setMarketplaceEnabled(boolean marketplaceEnabled) { this.marketplaceEnabled = marketplaceEnabled; }
     }
 }

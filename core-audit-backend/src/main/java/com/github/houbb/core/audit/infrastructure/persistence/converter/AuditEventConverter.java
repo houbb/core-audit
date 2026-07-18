@@ -58,6 +58,8 @@ public final class AuditEventConverter {
         entity.setMetadata(serializeMetadata(domain.getMetadata()));
         // P2 context
         entity.setContextJson(serializeContext(domain.getContext()));
+        // P9 tenant
+        entity.setTenant(domain.getTenant() != null ? domain.getTenant() : "default");
         return entity;
     }
 
@@ -94,6 +96,8 @@ public final class AuditEventConverter {
         domain.setMetadata(deserializeMetadata(entity.getMetadata()));
         // P2 context
         domain.setContext(deserializeContext(entity.getContextJson()));
+        // P9 tenant
+        domain.setTenant(entity.getTenant() != null ? entity.getTenant() : "default");
         return domain;
     }
 
