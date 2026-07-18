@@ -201,6 +201,183 @@ P9  Enterprise Platform   — 企业统一审计平台
 
 ---
 
+## [0.9.0] - 2026-07-18
+
+### Added — P8: Intelligence Runtime
+
+P8 将 `core-audit` 从"记录事实"升级为**企业智能审计平台（Audit Intelligence Platform）**，让每一条审计事件自动经过模式识别、风险评估、AI 分析和建议生成。
+
+> 核心目标：**让 Audit 从"记录事实"升级为"理解事实、发现风险、解释原因、给出建议"。**
+
+**架构升级：**
+
+```
+                 core-audit
+
+            Intelligence Service
+                    │
+      +-------------+--------------+
+      │             │              │
+ Pattern Engine  Rule Engine   AI Analyzer
+      │             │              │
+      +-------------+--------------+
+                    │
+           Insight Generator
+                    │
+         Recommendation Engine
+                    │
+      +-------------+--------------+
+      │             │              │
+  RiskAgent   SecurityAgent   BehaviorAgent
+```
+
+**新增核心组件：**
+
+| 组件 | 位置 | 职责 |
+|------|------|------|
+| `RiskLevel` | `application/domain/intelligence/` | 风险等级枚举（LOW/MEDIUM/HIGH/CRITICAL），含 `fromScore()` 映射 |
+| `AuditRisk` | `application/domain/intelligence/` | 风险评分领域对象（Builder 模式，score 0-100） |
+| `AuditInsight` | `application/domain/intelligence/` | 智能洞察领域对象（含 evidence_json + suggestion） |
+| `AuditPattern` | `application/domain/intelligence/` | 行为模式领域对象（5 种类型 + confidence 0.0-1.0） |
+| `AuditAgent` | `application/intelligence/` | Agent SPI 扩展点（`supports()` + `analyze()`，按 `order()` 排序） |
+| `RuleEngine` | `application/service/` | 确定性规则引擎（5 条内置规则，短路求值） |
+| `PatternEngine` | `application/service/` | 统计模式识别引擎（时间异常 / 高频操作 / 行为分布） |
+| `AiAnalyzer` | `application/service/` | AI 分析器（LLM 主路径 + 模板 fallback，默认 fallback） |
+| `InsightGenerator` | `application/service/` | 洞察生成器（聚合 Rule + Pattern + AI 结果） |
+| `RecommendationEngine` | `application/service/` | 建议引擎（7 条内置中文建议 + 全局洞察合并） |
+| `IntelligenceService` | `application/service/` | 中央编排器（7 步 pipeline，全流程故障隔离） |
+| `RiskAgent` | `infrastructure/intelligence/` | DELETE/LOGIN/ENABLE/DISABLE 风险分析 Agent（order=10） |
+| `SecurityAgent` | `infrastructure/intelligence/` | CONFIG/AI 模块 + EXPORT/IMPORT 安全分析 Agent（order=20） |
+| `BehaviorAgent` | `infrastructure/intelligence/` | 全事件行为异常检测 Agent（凌晨操作等，order=30） |
+| `IntelligenceController` | `api/controller/` | REST API（6 个端点 + 3 个内嵌 DTO） |
+
+**数据库变更：**
+- `audit_risk` — 风险评分表（audit_id FK, risk_score, risk_level, reason, rule_name, ai_analysis）
+- `audit_insight` — 智能洞察表（audit_id 可空=全局洞察, title, severity, summary, suggestion, evidence_json, agent_name）
+- `audit_pattern` — 行为模式表（type, owner, content_json, confidence, sample_count）
+- 6 个索引覆盖 audit_id、risk_level、risk_score、severity、pattern type+owner 查询
+
+**Rule Engine — 5 条内置规则（短路求值，首条命中即返回）：**
+
+| 规则名 | 触发条件 | 评分 | 等级 |
+|--------|----------|------|------|
+| `midnight-delete` | DELETE 在 00:00-06:00 | 70 | HIGH |
+| `bulk-delete` | DELETE 且 count > 100 | 95 | CRITICAL |
+| `bulk-delete-medium` | DELETE 且 count > 10 | 60 | HIGH |
+| `off-hours-admin-login` | Root/Admin 登录在非工作时间 | 40 | MEDIUM |
+| `sensitive-module-first-access` | CONFIG/AI 模块首次访问 | 35 | MEDIUM |
+
+**Pattern Engine — 3 种异常检测（纯统计，无需 ML）：**
+
+| 检测器 | 触发条件 | 风险加成 |
+|--------|----------|----------|
+| 时间异常 | 操作时间不在典型时段（09:00-18:00）外，且样本 > 10 | +10 |
+| 高频操作 | 5 分钟内 > 20 次操作 | +20 |
+| 行为分布异常 | DELETE 占比 > 30%，且样本 > 20 | +15 |
+
+**AI Analyzer — 双路径设计：**
+- **AI 路径**（`ai.enabled=true`）：构建 Audit + Context + Rule 结果 Prompt → Spring AI ChatClient → LLM 分析
+- **Fallback 路径**（默认）：模板化分析，从规则命中自动生成中文摘要和建议
+- AI 路径依赖可选依赖 `spring-ai-openai`，不引入则自动走 fallback
+
+**Agent SPI 设计：**
+
+```java
+public interface AuditAgent {
+    boolean supports(AuditEvent event);
+    AuditInsight analyze(AuditEvent event);
+    default int order() { return 100; }
+}
+```
+
+- 任意 Spring Bean 实现此接口即自动注册
+- `IntelligenceService` 集合注入所有 Agent，按 `order()` 排序后逐个调用
+- 每个 Agent 的 `analyze()` 故障隔离，单 Agent 失败不影响其他
+
+**API 新增（6 个端点）：**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/audit/intelligence/dashboard` | Intelligence Dashboard 统计 |
+| GET | `/api/v1/audit/intelligence/insights` | 分页查询洞察列表 |
+| GET | `/api/v1/audit/intelligence/insights/{id}` | 查看洞察详情 |
+| GET | `/api/v1/audit/intelligence/risk/{auditId}` | 查询指定 Audit 的风险评分 |
+| POST | `/api/v1/audit/intelligence/analyze` | 手动触发分析（placeholder） |
+| GET | `/api/v1/audit/intelligence/recommendations` | 获取全局建议列表 |
+
+**Dashboard 扩展：**
+- `todayInsightCount` — 今日洞察数
+- `todayCriticalCount` — 今日 Critical 数
+- `todayHighCount` — 今日 High 数
+- `avgRiskScore` — 平均风险评分
+
+**前端新增（2 个页面 + API + Types）：**
+
+| 文件 | 说明 |
+|------|------|
+| `IntelligencePage.vue` | 三栏布局：左侧洞察列表 + 中间建议面板 + 右侧风险概览 + 顶部 4 个统计卡片 |
+| `InsightDetailPage.vue` | 洞察详情：标题+严重度、摘要卡片、风险评分卡片、建议卡片、Evidence 网格 |
+| `api/intelligence.ts` | 5 个 API 调用函数 |
+| `types/audit.ts` | AuditRisk / AuditInsight / IntelligenceDashboard 类型定义 |
+
+**前端路由新增：**
+- `/intelligence` → IntelligencePage（三栏布局）
+- `/intelligence/insights/:id` → InsightDetailPage（面包屑导航）
+
+**核心设计决策：**
+
+1. **Rule First, AI Enhanced** — 明确规则负责命中（DELETE/LOGIN/PERMISSION/CONFIG），AI 负责解释和建议，不反过来
+2. **Fault isolation throughout** — Pattern/Rule/AI/Agent 每一步失败只记日志，不阻塞审计记录主流程
+3. **Evidence Driven** — 所有 AI 结论必须引用 Evidence（Timeline/Replay/Diff/Audit），不凭空生成
+4. **Explainable AI** — 每个 Risk 必须解释"为什么"（凌晨 + 批量删除 + 历史首次发生 + 涉及生产租户）
+5. **Agent 化** — 不做一个大 Prompt，而是多个独立 Agent 插件，未来扩展只需新增实现类
+6. **Composite risk scoring** — 最终风险分 = max(rule score, rule score + pattern anomaly bonus)，上限 100
+7. **AI disabled by default** — AI 路径默认关闭，不引入 `spring-ai-openai` 依赖，企业按需开启
+8. **Global insights** — `audit_id IS NULL` 的洞察为全局建议，由 `RecommendationEngine` 管理
+9. **与 RCA 深度融合** — P8 开始，core-audit 成为 RCA 最重要的数据底座，可直接消费 P0-P7 全部数据
+
+**P8 不做（留到后续 Phase）：**
+
+| 能力 | Phase | 原因 |
+|------|-------|------|
+| 企业知识图谱 | P9 | 跨系统关联分析 |
+| 自动修复（Auto Remediation） | P9 | 涉及执行权限和审批 |
+| AI 自主审批 | P9 | 高风险能力，不建议默认开启 |
+| 多企业模型训练 | P9 | 企业级平台能力 |
+| 联邦学习 | P9 | 超大规模部署场景 |
+
+**P0～P8 能力演进：**
+
+```
+P0  Record Runtime        — 记录行为
+P1  Event Runtime         — 传播事件
+P2  Context Runtime       — 补全上下文
+P3  Diff Runtime          — 记录变更
+P4  Search Runtime        — 快速调查
+P5  Timeline Runtime      — 重建行为链路
+P6  Replay Runtime        — 重建操作过程
+P7  Compliance Runtime    — 建立可信治理
+P8  Intelligence Runtime  — 智能分析与 RCA 基础平台
+```
+
+到 **P8**，`core-audit` 已完成从"数据记录"到"智能分析"的质变：
+- **理解（Understand）** — Pattern Engine 识别行为模式
+- **推理（Reason）** — Rule Engine + AI Analyzer 分析风险
+- **预测（Predict）** — 行为基线对比，异常检测
+- **建议（Recommend）** — 7 条内置建议 + AI 动态生成
+
+**配置新增：**
+- `core.audit.intelligence.enabled` — Intelligence 总开关（默认 true）
+- `core.audit.intelligence.rule.enabled` — Rule Engine 开关（默认 true）
+- `core.audit.intelligence.ai.enabled` — AI 分析开关（默认 false）
+- `core.audit.intelligence.ai.provider` — AI 提供商（默认 openai）
+- `core.audit.intelligence.ai.model` — AI 模型（默认 gpt-4o-mini）
+
+**测试：**
+全量 JUnit 5 用例通过，0 失败（含现有测试 + 新增 P8 编译兼容）。
+
+---
+
 ## [0.8.0] - 2026-07-17
 
 ### Added — P7: Compliance Runtime
